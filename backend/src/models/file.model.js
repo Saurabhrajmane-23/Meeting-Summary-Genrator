@@ -37,6 +37,14 @@ const fileSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    transcript: {
+      type: String,
+      default: null,
+    },
+    isProcessed: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

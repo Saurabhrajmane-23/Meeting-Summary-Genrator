@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'; // Add useEffect
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -11,6 +11,10 @@ function Dashboard() {
   const [error, setError] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [files, setFiles] = useState([]);
+  const [loading, setLoading] = useState(false); // Add loading state
+  const [deletingFileId, setDeletingFileId] = useState(null); // Add new state for delete confirmation
+  const [processingFileId, setProcessingFileId] = useState(null); // Add processing state
+  const [processedFiles, setProcessedFiles] = useState({}); // Add this with other state declarations at the top
 
   const handleFileSelect = (event) => {
     const selectedFile = event.target.files[0];
@@ -21,16 +25,32 @@ function Dashboard() {
   // Add function to fetch user's files
   const fetchUserFiles = async () => {
     try {
+      setLoading(true);
       const response = await axios.get('http://localhost:8000/api/v2/files', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
       });
+
       if (response.data?.success) {
         setFiles(response.data.data);
+        // Set processed files state based on isProcessed flag
+        const processed = {};
+        response.data.data.forEach(file => {
+          if (file.isProcessed) {
+            processed[file._id] = {
+              transcript: file.transcript,
+              // Add other transcript data if needed
+            };
+          }
+        });
+        setProcessedFiles(processed);
       }
     } catch (error) {
       console.error('Error fetching files:', error);
+      setError('Failed to fetch files');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -71,9 +91,12 @@ function Dashboard() {
       });
 
       if (response.data?.success) {
-        setUploadProgress(100); // Set to 100% only after successful response
-        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay for visual feedback
-        alert('File uploaded successfully!');
+        setUploadProgress(100);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Add this: Fetch updated files list immediately
+        await fetchUserFiles();
+        
         setFile(null);
         setDescription('');
         setError('');
@@ -99,23 +122,94 @@ function Dashboard() {
   // Add function to handle processing
   const handleProcess = async (fileId) => {
     try {
-      const response = await axios.post(`http://localhost:8000/api/v2/files/process/${fileId}`, null, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
+      setProcessingFileId(fileId);
+      const response = await axios.post(
+        `http://localhost:8000/api/v2/files/process/${fileId}`, 
+        null,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        }
+      );
+
       if (response.data?.success) {
-        alert('File processing started');
+        // Store the transcript data in state
+        setProcessedFiles(prev => ({
+          ...prev,
+          [fileId]: {
+            transcript: response.data.data.transcript,
+            chapters: response.data.data.chapters,
+            speakers: response.data.data.speakers
+          }
+        }));
+        
+        // Fetch updated files list to get latest isProcessed status
+        await fetchUserFiles();
+        
+        alert('File processed successfully! Click the Download Transcript button to save it.');
       }
     } catch (error) {
       console.error('Process error:', error);
       alert('Error processing file');
+    } finally {
+      setProcessingFileId(null);
+    }
+  };
+
+  // Add delete handler function
+  const handleDelete = async (fileId) => {
+    if (!window.confirm('Are you sure you want to delete this file?')) {
+      return;
+    }
+
+    try {
+      setDeletingFileId(fileId);
+      const response = await axios.delete(
+        `http://localhost:8000/api/v2/files/delete/${fileId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        }
+      );
+
+      if (response.data?.success) {
+        // Remove file from state
+        setFiles(files.filter(file => file._id !== fileId));
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert('Failed to delete file');
+    } finally {
+      setDeletingFileId(null);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
     navigate('/login');
+  };
+
+  const handleDownloadTranscript = (fileId, fileName) => {
+    const processedFile = processedFiles[fileId];
+    if (!processedFile?.transcript) {
+      alert('No transcript available. Please process the file first.');
+      return;
+    }
+
+    const transcriptBlob = new Blob([processedFile.transcript], { type: 'text/plain' });
+    const downloadUrl = window.URL.createObjectURL(transcriptBlob);
+    
+    const downloadLink = document.createElement('a');
+    downloadLink.href = downloadUrl;
+    downloadLink.download = `transcript_${fileName}.txt`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    // Clean up
+    window.URL.revokeObjectURL(downloadUrl);
   };
 
   return (
@@ -260,63 +354,103 @@ function Dashboard() {
         {/* Files Table */}
         <div className="mt-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Your Files</h2>
-          <div className="bg-white shadow-md rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    File Name
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Uploaded At
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {files.map((file) => (
-                  <tr key={file.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {file.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {file.description || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(file.uploadedAt).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                      <button
-                        onClick={() => handleProcess(file.id)}
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 mr-1"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 4v16m8-8H4"
-                          />
-                        </svg>
-                        Process
-                      </button>
-                    </td>
+          {loading ? (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading files...</p>
+            </div>
+          ) : files.length === 0 ? (
+            <div className="bg-white shadow-md rounded-lg p-6 text-center">
+              <p className="text-gray-500">No files uploaded yet</p>
+            </div>
+          ) : (
+            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      File Name
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Size
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Uploaded At
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {files.map((file) => (
+                    <tr key={file._id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {file.fileName}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {file.description || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {file.fileType}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {(file.fileSize / (1024 * 1024)).toFixed(2)} MB
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(file.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        <button
+                          onClick={() => handleProcess(file._id)}
+                          className={`text-indigo-600 hover:text-indigo-900 ${
+                            processingFileId === file._id ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          disabled={processingFileId === file._id}
+                        >
+                          {processingFileId === file._id ? 'Processing...' : 'Process'}
+                        </button>
+                        
+                        {/* Update this condition to use isProcessed */}
+                        {file.isProcessed && (
+                          <button
+                            onClick={() => handleDownloadTranscript(file._id, file.fileName)}
+                            className="text-green-600 hover:text-green-900"
+                          >
+                            Download Transcript
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => handleDelete(file._id)}
+                          className="text-red-600 hover:text-red-900"
+                          disabled={deletingFileId === file._id}
+                        >
+                          {deletingFileId === file._id ? (
+                            <span className="inline-flex items-center">
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Deleting...
+                            </span>
+                          ) : (
+                            'Delete'
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </main>
     </div>

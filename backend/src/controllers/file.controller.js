@@ -4,10 +4,12 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import {
   uploadOnCloudinary,
   downloadFromCloudinary,
+  deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 import { File } from "../models/file.model.js";
 import fs from "fs";
 import path from "path";
+import { transcribeAudioFile } from "../utils/assembly.js";
 
 const uploadFile = asyncHandler(async (req, res) => {
   try {
@@ -95,27 +97,161 @@ const processAudio = asyncHandler(async (req, res) => {
       file.fileType
     );
 
-    console.log("File downloaded to:", localFilePath); // Add this line
+    console.log("File downloaded to:", localFilePath);
 
-    // Temporarily delay deletion to verify file
-    await new Promise((resolve) => setTimeout(resolve, 10000)); // 10 second delay
+    // Start transcription process
+    const transcript = await transcribeAudioFile(localFilePath);
 
-    // Clean up downloaded file
+    // Update file in database with transcript data and isProcessed flag
+    const updatedFile = await File.findByIdAndUpdate(
+      fileId,
+      {
+        $set: {
+          transcript: transcript.text,
+          chapters: transcript.chapters,
+          speakers: transcript.utterances?.map((u) => ({
+            speaker: u.speaker,
+            text: u.text,
+            start: u.start,
+            end: u.end,
+          })),
+          isProcessed: true, // Make sure this is set to true
+        },
+      },
+      { new: true }
+    );
+
+    // Clean up downloaded file only after transcription is complete
     if (fs.existsSync(localFilePath)) {
-      console.log("Cleaning up file:", localFilePath); // Add this line
       fs.unlinkSync(localFilePath);
     }
 
     return res.status(200).json(
-      new ApiResponse(200, {
-        message: "Audio processed successfully",
-        downloadPath: localFilePath, // Add this temporarily
-      })
+      new ApiResponse(
+        200,
+        {
+          transcript: transcript.text,
+          chapters: transcript.chapters,
+          speakers: transcript.utterances,
+        },
+        "Audio processed and transcribed successfully"
+      )
     );
   } catch (error) {
-    console.error("Process error:", error); // Add this line
+    console.error("Process error:", error);
     throw new ApiError(500, error?.message || "Error processing audio file");
   }
 });
 
-export { uploadFile, processAudio };
+const getAllFiles = asyncHandler(async (req, res) => {
+  try {
+    const files = await File.find({ owner: req.user._id })
+      .select(
+        "fileName fileType duration fileSize description createdAt status isProcessed transcript"
+      )
+      .sort({ createdAt: -1 });
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, files, "Files fetched successfully"));
+  } catch (error) {
+    throw new ApiError(500, "Error fetching files");
+  }
+});
+
+const deleteFile = asyncHandler(async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    // Find file and check ownership
+    const file = await File.findOne({
+      _id: fileId,
+      owner: req.user._id,
+    });
+
+    if (!file) {
+      throw new ApiError(404, "File not found or unauthorized");
+    }
+
+    console.log("Attempting to delete file:", {
+      fileId,
+      cloudinaryPublicId: file.cloudinaryPublicId,
+      fileType: file.fileType,
+    });
+
+    // Delete from cloudinary with correct resource type
+    if (file.cloudinaryPublicId) {
+      try {
+        await deleteFromCloudinary(file.cloudinaryPublicId, file.fileType);
+      } catch (cloudinaryError) {
+        console.error("Cloudinary deletion error:", cloudinaryError);
+        // Continue with database deletion even if Cloudinary deletion fails
+      }
+    }
+
+    // Delete from database
+    await File.findByIdAndDelete(fileId);
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, null, "File deleted successfully"));
+  } catch (error) {
+    console.error("Delete error:", error);
+    throw new ApiError(500, error?.message || "Error deleting file");
+  }
+});
+
+const transcribeAudio = asyncHandler(async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    // Get file details from database
+    const file = await File.findById(fileId);
+    if (!file) {
+      throw new ApiError(404, "File not found");
+    }
+
+    // Check if file belongs to user
+    if (file.owner.toString() !== req.user._id.toString()) {
+      throw new ApiError(403, "Unauthorized access");
+    }
+
+    // Send to AssemblyAI for transcription
+    const transcript = await transcribeAudioFile(file.cloudinaryUrl);
+
+    // Update file in database with transcript data
+    const updatedFile = await File.findByIdAndUpdate(
+      fileId,
+      {
+        $set: {
+          transcript: transcript.text,
+          chapters: transcript.chapters,
+          speakers: transcript.utterances?.map((u) => ({
+            speaker: u.speaker,
+            text: u.text,
+            start: u.start,
+            end: u.end,
+          })),
+        },
+      },
+      { new: true }
+    );
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          transcript: transcript.text,
+          chapters: transcript.chapters,
+          speakers: transcript.utterances,
+        },
+        "Audio transcribed successfully"
+      )
+    );
+  } catch (error) {
+    console.error("Transcription error:", error);
+    throw new ApiError(500, error?.message || "Error transcribing audio");
+  }
+});
+
+export { uploadFile, processAudio, getAllFiles, deleteFile, transcribeAudio };

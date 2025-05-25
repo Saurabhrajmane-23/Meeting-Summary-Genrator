@@ -61,7 +61,6 @@ const uploadOnCloudinary = async (localFilePath, resourceType = "auto") => {
       fileStream.on("data", (chunk) => {
         uploadedBytes += chunk.length;
         const progress = Math.min((uploadedBytes / fileSize) * 100, 99); // Cap at 99% until fully complete
-        console.log(`Upload progress: ${Math.round(progress)}%`);
       });
 
       fileStream.on("end", () => {
@@ -179,4 +178,50 @@ const downloadFromCloudinary = async (
   }
 };
 
-export { uploadOnCloudinary, downloadFromCloudinary };
+const deleteFromCloudinary = async (publicId, resourceType = "auto") => {
+  try {
+    // Remove any file extension from publicId if present
+    const cleanPublicId = publicId.split(".")[0];
+
+    // Map file types to Cloudinary resource types
+    const resourceTypeMap = {
+      audio: "video", // Cloudinary handles audio files under video resource type
+      video: "video",
+      auto: "auto",
+    };
+
+    const cloudinaryResourceType = resourceTypeMap[resourceType] || "auto";
+
+    console.log(`Attempting to delete from Cloudinary:`, {
+      publicId: cleanPublicId,
+      resourceType: cloudinaryResourceType,
+    });
+
+    const result = await cloudinary.uploader.destroy(cleanPublicId, {
+      resource_type: cloudinaryResourceType,
+    });
+
+    if (result?.result !== "ok") {
+      throw new Error(
+        `Cloudinary deletion failed: ${result?.result || "unknown error"}`
+      );
+    }
+
+    console.log(`Successfully deleted from Cloudinary:`, {
+      publicId: cleanPublicId,
+      result,
+    });
+
+    return result;
+  } catch (error) {
+    console.error("Cloudinary delete error:", {
+      message: error.message,
+      publicId,
+      resourceType,
+    });
+    throw error;
+  }
+};
+
+// Update the export
+export { uploadOnCloudinary, downloadFromCloudinary, deleteFromCloudinary };
