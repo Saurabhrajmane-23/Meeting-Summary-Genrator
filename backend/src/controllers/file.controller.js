@@ -10,6 +10,8 @@ import { File } from "../models/file.model.js";
 import fs from "fs";
 import path from "path";
 import { transcribeAudioFile } from "../utils/assembly.js";
+import { generateSummaryPDF } from "../utils/pdfGenerator.js";
+import { generateMeetingSummary } from "../utils/gemini.js";
 
 const uploadFile = asyncHandler(async (req, res) => {
   try {
@@ -102,7 +104,10 @@ const processAudio = asyncHandler(async (req, res) => {
     // Start transcription process
     const transcript = await transcribeAudioFile(localFilePath);
 
-    // Update file in database with transcript data and isProcessed flag
+    // Generate AI summary after transcription
+    const summary = await generateMeetingSummary(transcript.text);
+
+    // Update file in database with transcript and summary data
     const updatedFile = await File.findByIdAndUpdate(
       fileId,
       {
@@ -115,7 +120,9 @@ const processAudio = asyncHandler(async (req, res) => {
             start: u.start,
             end: u.end,
           })),
-          isProcessed: true, // Make sure this is set to true
+          aiSummary: summary,
+          isProcessed: true,
+          isAnalyzed: true,
         },
       },
       { new: true }
@@ -133,8 +140,9 @@ const processAudio = asyncHandler(async (req, res) => {
           transcript: transcript.text,
           chapters: transcript.chapters,
           speakers: transcript.utterances,
+          aiSummary: summary,
         },
-        "Audio processed and transcribed successfully"
+        "Audio processed and summarized successfully"
       )
     );
   } catch (error) {
@@ -254,4 +262,55 @@ const transcribeAudio = asyncHandler(async (req, res) => {
   }
 });
 
-export { uploadFile, processAudio, getAllFiles, deleteFile, transcribeAudio };
+const downloadSummaryPDF = asyncHandler(async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    // Get file details from database
+    const file = await File.findById(fileId);
+    if (!file) {
+      throw new ApiError(404, "File not found");
+    }
+
+    // Check if file has been processed and has a summary
+    if (!file.aiSummary) {
+      throw new ApiError(400, "No summary available for this file");
+    }
+
+    // Generate PDF
+    const pdfFileName = `summary_${fileId}_${Date.now()}.pdf`;
+    const pdfPath = path.join("public", "temp", pdfFileName);
+
+    // Ensure temp directory exists
+    if (!fs.existsSync(path.join("public", "temp"))) {
+      fs.mkdirSync(path.join("public", "temp"), { recursive: true });
+    }
+
+    // Generate PDF file
+    await generateSummaryPDF(file.aiSummary, pdfPath);
+
+    // Send file
+    res.download(pdfPath, `summary_${file.fileName}.pdf`, (err) => {
+      // Clean up: delete the temporary PDF file
+      if (fs.existsSync(pdfPath)) {
+        fs.unlinkSync(pdfPath);
+      }
+
+      if (err) {
+        console.error("Download error:", err);
+      }
+    });
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    throw new ApiError(500, error?.message || "Error generating PDF");
+  }
+});
+
+export {
+  uploadFile,
+  processAudio,
+  getAllFiles,
+  deleteFile,
+  transcribeAudio,
+  downloadSummaryPDF,
+};

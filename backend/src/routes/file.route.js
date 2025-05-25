@@ -7,6 +7,7 @@ import {
   getAllFiles,
   deleteFile,
   transcribeAudio,
+  downloadSummaryPDF,
 } from "../controllers/file.controller.js";
 
 const router = Router();
@@ -16,5 +17,6 @@ router.route("/process/:fileId").post(processAudio);
 router.route("/").get(verifyJWT, getAllFiles);
 router.route("/delete/:fileId").delete(verifyJWT, deleteFile);
 router.route("/transcribe/:fileId").post(verifyJWT, transcribeAudio);
+router.route("/summary/:fileId/pdf").get(verifyJWT, downloadSummaryPDF);
 
 export default router;

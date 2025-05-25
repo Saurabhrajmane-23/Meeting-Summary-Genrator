@@ -45,6 +45,14 @@ const fileSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    aiSummary: {
+      type: String,
+      default: null,
+    },
+    isAnalyzed: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

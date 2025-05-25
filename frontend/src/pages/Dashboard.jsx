@@ -4,17 +4,20 @@ import axios from 'axios';
 
 function Dashboard() {
   const navigate = useNavigate();
-  const fileInputRef = useRef(null); // Add this line
+  const fileInputRef = useRef(null); 
   const [file, setFile] = useState(null);
-  const [description, setDescription] = useState(''); // Add this line
+  const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [files, setFiles] = useState([]);
-  const [loading, setLoading] = useState(false); // Add loading state
-  const [deletingFileId, setDeletingFileId] = useState(null); // Add new state for delete confirmation
-  const [processingFileId, setProcessingFileId] = useState(null); // Add processing state
-  const [processedFiles, setProcessedFiles] = useState({}); // Add this with other state declarations at the top
+  const [loading, setLoading] = useState(false);
+  const [deletingFileId, setDeletingFileId] = useState(null);
+  const [processingFileId, setProcessingFileId] = useState(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [selectedFileForEmail, setSelectedFileForEmail] = useState(null);
+  const [processedFiles, setProcessedFiles] = useState({});
 
   const handleFileSelect = (event) => {
     const selectedFile = event.target.files[0];
@@ -40,7 +43,8 @@ function Dashboard() {
           if (file.isProcessed) {
             processed[file._id] = {
               transcript: file.transcript,
-              // Add other transcript data if needed
+              aiSummary: file.aiSummary,
+              isAnalyzed: file.isAnalyzed
             };
           }
         });
@@ -119,7 +123,7 @@ function Dashboard() {
     }
   };
 
-  // Add function to handle processing
+  // function to handle processing
   const handleProcess = async (fileId) => {
     try {
       setProcessingFileId(fileId);
@@ -134,20 +138,21 @@ function Dashboard() {
       );
 
       if (response.data?.success) {
-        // Store the transcript data in state
+        // Store both transcript and summary data in state
         setProcessedFiles(prev => ({
           ...prev,
           [fileId]: {
             transcript: response.data.data.transcript,
             chapters: response.data.data.chapters,
-            speakers: response.data.data.speakers
+            speakers: response.data.data.speakers,
+            aiSummary: response.data.data.aiSummary
           }
         }));
         
-        // Fetch updated files list to get latest isProcessed status
+        // Refresh files list
         await fetchUserFiles();
         
-        alert('File processed successfully! Click the Download Transcript button to save it.');
+        alert('File processed successfully! You can now download the transcript and summary.');
       }
     } catch (error) {
       console.error('Process error:', error);
@@ -157,7 +162,7 @@ function Dashboard() {
     }
   };
 
-  // Add delete handler function
+  // delete handler function
   const handleDelete = async (fileId) => {
     if (!window.confirm('Are you sure you want to delete this file?')) {
       return;
@@ -186,11 +191,13 @@ function Dashboard() {
     }
   };
 
+  // Logout function
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
     navigate('/login');
   };
 
+  // downloading the transcript
   const handleDownloadTranscript = (fileId, fileName) => {
     const processedFile = processedFiles[fileId];
     if (!processedFile?.transcript) {
@@ -210,6 +217,95 @@ function Dashboard() {
 
     // Clean up
     window.URL.revokeObjectURL(downloadUrl);
+  };
+
+  const handleDownloadSummaryPDF = async (fileId, fileName) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:8000/api/v2/files/summary/${fileId}/pdf`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+          responseType: 'blob'
+        }
+      );
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `summary_${fileName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert(error.response?.data?.message || 'Error downloading summary PDF. Please make sure the file has been processed and has a summary.');
+    }
+  };
+
+  const handleEmailSummary = async () => {
+    try {
+      if (!emailAddress || !selectedFileForEmail) return;
+
+      await axios.post(
+        `http://localhost:8000/api/v2/files/summary/${selectedFileForEmail}/email`,
+        { email: emailAddress },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          },
+        }
+      );
+
+      alert('Summary sent to email successfully!');
+      setShowEmailModal(false);
+      setEmailAddress('');
+      setSelectedFileForEmail(null);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('Error sending summary email');
+    }
+  };
+
+  // Add this component inside Dashboard but before the return statement
+  const EmailModal = () => {
+    if (!showEmailModal) return null;
+
+    return (
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg p-6 w-96">
+          <h3 className="text-lg font-medium mb-4">Send Summary via Email</h3>
+          <input
+            type="email"
+            value={emailAddress}
+            onChange={(e) => setEmailAddress(e.target.value)}
+            placeholder="Enter email address"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4"
+          />
+          <div className="flex justify-end space-x-2">
+            <button
+              onClick={() => {
+                setShowEmailModal(false);
+                setEmailAddress('');
+                setSelectedFileForEmail(null);
+              }}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleEmailSummary}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -417,14 +513,32 @@ function Dashboard() {
                           {processingFileId === file._id ? 'Processing...' : 'Process'}
                         </button>
                         
-                        {/* Update this condition to use isProcessed */}
                         {file.isProcessed && (
-                          <button
-                            onClick={() => handleDownloadTranscript(file._id, file.fileName)}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            Download Transcript
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleDownloadTranscript(file._id, file.fileName)}
+                              className="text-green-600 hover:text-green-900"
+                            >
+                              Download Transcript
+                            </button>
+
+                            <button
+                              onClick={() => handleDownloadSummaryPDF(file._id, file.fileName)}
+                              className="text-purple-600 hover:text-purple-900"
+                            >
+                              Download Summary
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setSelectedFileForEmail(file._id);
+                                setShowEmailModal(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              Email Summary
+                            </button>
+                          </>
                         )}
 
                         <button
@@ -453,6 +567,8 @@ function Dashboard() {
           )}
         </div>
       </main>
+
+      <EmailModal />
     </div>
   );
 }
