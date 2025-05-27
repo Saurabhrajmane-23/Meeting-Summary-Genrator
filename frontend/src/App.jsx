@@ -5,11 +5,13 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 
 import ProtectedRoute from './components/ProtectedRoute';
+import { ThemeProvider } from './context/ThemeContext';
 
 
 
 function App() {
   return (
+    <ThemeProvider>
     <Router>
       <Routes>
         <Route path="/" element={<Register />} />
@@ -23,6 +25,7 @@ function App() {
         } />
       </Routes>
     </Router>
+    </ThemeProvider>
   );
 }
 
