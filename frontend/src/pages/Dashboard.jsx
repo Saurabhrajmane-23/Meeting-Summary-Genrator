@@ -16,9 +16,6 @@ function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [deletingFileId, setDeletingFileId] = useState(null);
   const [processingFileId, setProcessingFileId] = useState(null);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [emailAddress, setEmailAddress] = useState('');
-  const [selectedFileForEmail, setSelectedFileForEmail] = useState(null);
   const [processedFiles, setProcessedFiles] = useState({});
   const [userData, setUserData] = useState({
     username: '',
@@ -26,6 +23,7 @@ function Dashboard() {
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(''); // Add this to your state declarations at the top of the component
 
   const handleFileSelect = (event) => {
     const selectedFile = event.target.files[0];
@@ -290,78 +288,6 @@ function Dashboard() {
     }
   };
 
-  const handleEmailSummary = async () => {
-    try {
-      if (!emailAddress || !selectedFileForEmail) return;
-
-      await axios.post(
-        `http://localhost:8000/api/v2/files/summary/${selectedFileForEmail}/email`,
-        { email: emailAddress },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-          },
-        }
-      );
-
-      alert('Summary sent to email successfully!');
-      setShowEmailModal(false);
-      setEmailAddress('');
-      setSelectedFileForEmail(null);
-    } catch (error) {
-      console.error('Error sending email:', error);
-      alert('Error sending summary email');
-    }
-  };
-
-  // Add this component inside Dashboard but before the return statement
-  const EmailModal = () => {
-    if (!showEmailModal) return null;
-
-    return (
-      <div className={`fixed inset-0 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-600'} bg-opacity-50 flex items-center justify-center`}>
-        <div className={`${
-          isDarkMode ? 'bg-gray-800' : 'bg-white'
-        } rounded-lg p-6 w-96`}>
-          <h3 className={`text-lg font-medium mb-4 ${
-            isDarkMode ? 'text-gray-200' : 'text-gray-900'
-          }`}>
-            Send Summary via Email
-          </h3>
-          <input
-            type="email"
-            value={emailAddress}
-            onChange={(e) => setEmailAddress(e.target.value)}
-            placeholder="Enter email address"
-            className={`w-full px-3 py-2 border rounded-md mb-4 ${
-              isDarkMode 
-                ? 'bg-gray-700 border-gray-600 text-gray-200' 
-                : 'bg-white border-gray-300 text-gray-900'
-            }`}
-          />
-          <div className="flex justify-end space-x-2">
-            <button
-              onClick={() => {
-                setShowEmailModal(false);
-                setEmailAddress('');
-                setSelectedFileForEmail(null);
-              }}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleEmailSummary}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            >
-              Send
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // Update these drag and drop event handlers
   const handleDragEnter = (e) => {
     e.preventDefault();
@@ -433,10 +359,15 @@ function Dashboard() {
     }
   };
 
+  const filteredFiles = files.filter(file => 
+    file.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (file.description && file.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  ); // Add this function before the return statement
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
       {/* Navigation Header */}
-      <nav className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
+      <nav className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg sticky top-0 z-50`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <h1 className={`text-2xl ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
@@ -502,7 +433,7 @@ function Dashboard() {
                 {isDropdownOpen && (
                   <div className={`absolute right-0 mt-2 w-48 ${
                     isDarkMode ? 'bg-gray-800' : 'bg-white'
-                  } rounded-md shadow-lg py-1`}>
+                  } rounded-sm shadow-lg py-1`}>
                     {/* Add theme toggle before logout */}
                     <div className={`px-4 py-2 flex items-center justify-between ${
                       isDarkMode 
@@ -554,8 +485,8 @@ function Dashboard() {
             className={`border-4 border-dashed pointer-events-auto ${
               isDarkMode ? 'border-gray-700' : 'border-gray-200'
             } ${
-              isDragging ? 'bg-indigo-50 border-indigo-500' : ''
-            } rounded-lg h-96 flex flex-col items-center justify-center space-y-4 transition-colors duration-200`}
+              isDragging ? 'bg-neutral-500 border-gray-900' : ''
+            } rounded-lg h-75 flex flex-col items-center justify-center space-y-4 transition-colors duration-200`}
           >
             <input
               ref={fileInputRef}
@@ -585,7 +516,7 @@ function Dashboard() {
                 <div className="flex text-sm text-gray-600">
                   <label
                     htmlFor="file-upload"
-                    className="relative cursor-pointer rounded-md font-medium text-indigo-600 hover:text-indigo-500"
+                    className="relative cursor-pointer rounded-sm font-medium text-indigo-600 hover:text-indigo-500"
                   >
                     <span>Select a file</span>
                     <input
@@ -616,7 +547,7 @@ function Dashboard() {
                 isDarkMode 
                   ? 'bg-gray-800 text-gray-200 border-gray-700' 
                   : 'bg-white text-gray-700 border-gray-300'
-              } border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+              } border rounded-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
               rows="2"
             />
             
@@ -632,7 +563,7 @@ function Dashboard() {
             <button
               onClick={handleUpload}
               disabled={uploading || !file}
-              className={`inline-flex items-center mt-3 px-6 py-2 border border-transparent text-base font-medium rounded-md text-white
+              className={`inline-flex items-center mt-3 px-6 py-2 border border-transparent text-base font-medium rounded-sm text-white
                 ${uploading ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'}
                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
                 transition-colors duration-200`}
@@ -684,12 +615,44 @@ function Dashboard() {
         </div>
 
         {/* Files Table */}
-        <div className="mt-5">
-          <h2 className={`text-lg font-semibold mb-4 ${
+        {/* Files Table Header */}
+        <div className="mt-5 flex justify-between items-center mb-4">
+          <h2 className={`text-lg font-semibold ${
   isDarkMode ? 'text-gray-200' : 'text-gray-800'
 }`}>
   Your Files
 </h2>
+  
+  <div className="relative">
+    <input
+      type="text"
+      placeholder="Search files..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      className={`w-64 px-4 py-1 rounded-md border ${
+        isDarkMode 
+          ? 'bg-gray-800 border-gray-700 text-gray-200 placeholder-gray-400' 
+          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+      } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+    />
+    <svg 
+      className={`absolute right-3 top-2.5 h-5 w-5 ${
+        isDarkMode ? 'text-gray-400' : 'text-gray-500'
+      }`}
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 20 20" 
+      fill="currentColor"
+    >
+      <path 
+        fillRule="evenodd" 
+        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" 
+        clipRule="evenodd" 
+      />
+    </svg>
+  </div>
+</div>
+
+        <div className="mt-5">
           {loading ? (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
@@ -700,23 +663,33 @@ function Dashboard() {
               <p className="text-gray-500">No files uploaded yet</p>
             </div>
           ) : (
-            <div className="bg-white shadow-md rounded-lg overflow-hidden">
+            <div className="bg-white shadow-md overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}>
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
                       File Name
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
                       Description
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
                       Size
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
                       Uploaded At
                     </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
                       Actions
                     </th>
                   </tr>
@@ -724,7 +697,7 @@ function Dashboard() {
                 <tbody className={`divide-y ${
                   isDarkMode ? 'divide-gray-700 text-gray-300' : 'divide-gray-200'
                 }`}>
-                  {files.map((file) => (
+                  {filteredFiles.map((file) => (
                     <tr key={file._id} className={isDarkMode ? 'bg-gray-800' : 'bg-white'}>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${
                         isDarkMode ? 'text-gray-300' : 'text-gray-900'
@@ -746,60 +719,75 @@ function Dashboard() {
                       }`}>
                         {new Date(file.createdAt).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                         <button
                           onClick={() => handleProcess(file._id)}
-                          className={`text-indigo-600 hover:text-indigo-900 ${
+                          className={`p-2 rounded-full hover:bg-gray-100 transform hover:scale-110 transition-all duration-200 ${
+                            isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                          } ${
                             processingFileId === file._id ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
                           disabled={processingFileId === file._id}
+                          title="Process file"
                         >
-                          {processingFileId === file._id ? 'Processing...' : 'Process'}
+                          {processingFileId === file._id ? (
+                            <svg className="animate-spin h-6 w-6 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+                          ) : (
+                            <svg className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )}
                         </button>
                         
                         {file.isProcessed && (
                           <>
                             <button
                               onClick={() => handleDownloadTranscript(file._id, file.fileName)}
-                              className="text-green-600 hover:text-green-900"
+                              className={`p-2 rounded-full transform hover:scale-110 transition-all duration-200 ${
+                                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                              }`}
+                              title="Download transcript"
                             >
-                              Download Transcript
+                              <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                              </svg>
                             </button>
 
                             <button
                               onClick={() => handleDownloadSummaryPDF(file._id, file.fileName)}
-                              className="text-purple-600 hover:text-purple-900"
+                              className={`p-2 rounded-full transform hover:scale-110 transition-all duration-200 ${
+                                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                              }`}
+                              title="Download summary PDF"
                             >
-                              Download Summary
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                setSelectedFileForEmail(file._id);
-                                setShowEmailModal(true);
-                              }}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              Email Summary
+                              <svg className="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
                             </button>
                           </>
                         )}
 
                         <button
                           onClick={() => handleDelete(file._id)}
-                          className="text-red-600 hover:text-red-900"
+                          className={`p-2 rounded-full transform hover:scale-110 transition-all duration-200 ${
+                            isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                          }`}
                           disabled={deletingFileId === file._id}
+                          title="Delete file"
                         >
                           {deletingFileId === file._id ? (
-                            <span className="inline-flex items-center">
-                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              Deleting...
-                            </span>
+                            <svg className="animate-spin h-6 w-6 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
                           ) : (
-                            'Delete'
+                            <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                           )}
                         </button>
                       </td>
@@ -811,8 +799,6 @@ function Dashboard() {
           )}
         </div>
       </main>
-
-      <EmailModal />
     </div>
   );
 }
