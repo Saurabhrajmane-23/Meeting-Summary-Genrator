@@ -48,7 +48,7 @@ function Register() {
 
   return (
     <div 
-      className={`flex justify-center items-center min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
+      className={`flex justify-center items-center min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}
       style={{
         backgroundImage: 'url("/images/image2.png")',
         backgroundSize: 'cover',
@@ -93,7 +93,7 @@ function Register() {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className={`p-6 w-96 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+          <form onSubmit={handleSubmit} className={`p-6 w-96 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
             <h2 className="text-2xl font-semibold text-center mb-4">Create Your Account</h2>
             
             {/* Form inputs */}

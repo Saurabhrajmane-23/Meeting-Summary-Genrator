@@ -157,4 +157,19 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Logged out successfully"));
 });
 
-export { registerUser, loginUser, logoutUser };
+const getUserProfile = asyncHandler(async (req, res) => {
+  // Get user details from req.user (set by auth middleware)
+  const user = await User.findById(req.user?._id).select(
+    "-password -refreshToken"
+  );
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User details fetched successfully"));
+});
+
+export { registerUser, loginUser, logoutUser, getUserProfile };
