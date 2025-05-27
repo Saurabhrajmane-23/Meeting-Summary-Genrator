@@ -43,23 +43,23 @@ const registerUser = asyncHandler(async (req, res) => {
       .json(new ApiResponse(200, existingUser, "User already exists"));
   }
 
-  // check avatar is uploaded or not
+  // avatar handling
   const avatarLocalPath = req.file?.path;
-  if (!avatarLocalPath) {
-    throw new ApiError(400, "Avatar file is required");
-  }
+  let avatarUrl = ""; // Default empty avatar URL
 
-  // upload avatar to cloudinary
-  const avatar = await uploadOnCloudinary(avatarLocalPath);
-  if (!avatar) {
-    throw new ApiError(500, "Failed to upload avatar to cloudinary");
+  if (avatarLocalPath) {
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    if (!avatar) {
+      throw new ApiError(500, "Failed to upload avatar to cloudinary");
+    }
+    avatarUrl = avatar.url;
   }
 
   // create user object - create entry in database
   const user = await User.create({
     username,
     email,
-    avatar: avatar.url,
+    avatar: avatarUrl, // Use empty string if no avatar was uploaded
     password,
   });
 
@@ -172,4 +172,32 @@ const getUserProfile = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "User details fetched successfully"));
 });
 
-export { registerUser, loginUser, logoutUser, getUserProfile };
+const deleteUser = asyncHandler(async (req, res) => {
+  // Get user ID from authenticated user
+  const userId = req.user?._id;
+
+  if (!userId) {
+    throw new ApiError(401, "Authentication required");
+  }
+
+  // Find and delete the user
+  const deletedUser = await User.findByIdAndDelete(userId);
+
+  if (!deletedUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // Clear authentication cookies
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User deleted successfully"));
+});
+
+export { registerUser, loginUser, logoutUser, getUserProfile, deleteUser };

@@ -235,6 +235,9 @@ function Dashboard() {
 
   // Logout function
   const handleLogout = () => {
+    if (!window.confirm('Are you sure you want to logout?')) {
+      return;
+    }
     localStorage.removeItem('accessToken');
     navigate('/login');
   };
@@ -364,6 +367,29 @@ function Dashboard() {
     (file.description && file.description.toLowerCase().includes(searchQuery.toLowerCase()))
   ); // Add this function before the return statement
 
+  // Add this function near other handler functions in Dashboard.jsx
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await axios.delete('http://localhost:8000/api/v2/users/delete-account', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      });
+
+      if (response.data?.success) {
+        localStorage.removeItem('accessToken');
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Failed to delete account. Please try again.');
+    }
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
       {/* Navigation Header */}
@@ -371,12 +397,12 @@ function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <h1 className={`text-2xl ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-              Dashboard
+              Summary Dashboard
             </h1>
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <div className="flex items-center space-x-6">
-                  <span className={`text-2xl  ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>
+                  <span className={`text-2xl  ${isDarkMode ? 'text-white bg-gray-800' : 'text-black bg-white'}`}>
                     {userData.username}
                   </span>
                   {userData.avatar ? (
@@ -434,7 +460,7 @@ function Dashboard() {
                   <div className={`absolute right-0 mt-2 w-48 ${
                     isDarkMode ? 'bg-gray-800' : 'bg-white'
                   } rounded-sm shadow-lg py-1`}>
-                    {/* Add theme toggle before logout */}
+                    {/* Theme toggle */}
                     <div className={`px-4 py-2 flex items-center justify-between ${
                       isDarkMode 
                         ? 'text-gray-200 hover:bg-gray-700' 
@@ -454,6 +480,7 @@ function Dashboard() {
                         />
                       </button>
                     </div>
+                    
                     {/* Logout button */}
                     <button
                       onClick={handleLogout}
@@ -465,6 +492,19 @@ function Dashboard() {
                     >
                       Logout
                     </button>
+
+                    {/* Delete Account button */}
+                    <button
+                      onClick={handleDeleteAccount}
+                      className={`block w-full text-left px-4 py-2 text-sm ${
+                        isDarkMode 
+                          ? 'text-red-400 hover:bg-gray-700' 
+                          : 'text-red-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      Delete Account
+                    </button>
+
                   </div>
                 )}
               </div>
@@ -483,7 +523,7 @@ function Dashboard() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={`border-4 border-dashed pointer-events-auto ${
-              isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              isDarkMode ? 'border-gray-700' : 'border-gray-400'
             } ${
               isDragging ? 'bg-neutral-500 border-gray-900' : ''
             } rounded-lg h-75 flex flex-col items-center justify-center space-y-4 transition-colors duration-200`}
@@ -559,23 +599,24 @@ function Dashboard() {
             )}
           </div>
 
-          <div className="mt-4 flex justify-center">
+          {/* Upload Button and Progress */}
+          <div className="mt-7 flex flex-col items-center">
             <button
               onClick={handleUpload}
               disabled={uploading || !file}
-              className={`inline-flex items-center mt-3 px-6 py-2 border border-transparent text-base font-medium rounded-sm text-white
-                ${uploading ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'}
+              className={`relative inline-flex items-center px-6 py-2 border border-transparent text-base font-medium rounded-md text-white
+                ${uploading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}
                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
-                transition-colors duration-200`}
+                transition-all duration-200 w-48`}
             >
               {uploading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <div className="flex items-center justify-center w-full">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Uploading... {uploadProgress}%
-                </>
+                  <span className="ml-2">Uploading...</span>
+                </div>
               ) : (
                 <>
                   <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -585,33 +626,55 @@ function Dashboard() {
                 </>
               )}
             </button>
-          </div>
 
-          {/* Upload Progress Bar */}
-          {uploading && (
-            <div className="mt-4 w-full max-w-md mx-auto">
-              <div className="relative pt-1">
-                <div className="flex mb-2 items-center justify-between">
-                  <div>
-                    <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-600 bg-indigo-200">
-                      Uploading
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-semibold inline-block text-indigo-600">
+            {/* Enhanced Progress Bar */}
+            {uploading && (
+              <div className="mt-6 w-full max-w-md">
+                <div className="relative">
+                  <div className="flex mb-3 items-center justify-between">
+                    <div className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                        Uploading {file?.name}
+                      </span>
+                    </div>
+                    <span className={`text-sm font-semibold ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
                       {uploadProgress}%
                     </span>
                   </div>
-                </div>
-                <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-indigo-200">
-                  <div
-                    style={{ width: `${uploadProgress}%` }}
-                    className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-300"
-                  />
+                  
+                  <div className="relative pt-1">
+                    <div className={`overflow-hidden h-2 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                      <div
+                        style={{ width: `${uploadProgress}%` }}
+                        className={`h-2 rounded-full ${
+                          uploadProgress < 100 
+                            ? 'bg-indigo-500' 
+                            : 'bg-green-500'
+                        } transition-all duration-300 ease-out`}
+                      />
+                    </div>
+                    {uploadProgress === 100 && (
+                      <div className="absolute right-0 -top-7 transform translate-y-full">
+                        <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <p className={`mt-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {uploadProgress < 100 
+                      ? 'Please wait while your file is being uploaded...'
+                      : 'Upload complete! Processing will begin shortly...'}
+                  </p>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Files Table */}
@@ -656,12 +719,16 @@ function Dashboard() {
           {loading ? (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading files...</p>
+              <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading files...</p>
             </div>
           ) : files.length === 0 ? (
-            <div className="bg-white shadow-md rounded-lg p-6 text-center">
-              <p className="text-gray-500">No files uploaded yet</p>
-            </div>
+            <div className={`${
+    isDarkMode ? 'bg-gray-800' : 'bg-white'
+  } shadow-md rounded-lg p-6 text-center`}>
+    <p className={`${
+      isDarkMode ? 'text-gray-400' : 'text-gray-500'
+    }`}>No files uploaded yet</p>
+  </div>
           ) : (
             <div className="bg-white shadow-md overflow-hidden">
               <table className="min-w-full divide-y divide-gray-200">
