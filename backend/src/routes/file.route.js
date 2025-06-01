@@ -8,6 +8,7 @@ import {
   deleteFile,
   transcribeAudio,
   downloadSummaryPDF,
+  getFileProcessingPercentage,
 } from "../controllers/file.controller.js";
 
 const router = Router();
@@ -18,5 +19,7 @@ router.route("/").get(verifyJWT, getAllFiles);
 router.route("/delete/:fileId").delete(verifyJWT, deleteFile);
 router.route("/transcribe/:fileId").post(verifyJWT, transcribeAudio);
 router.route("/summary/:fileId/pdf").get(verifyJWT, downloadSummaryPDF);
+router.route(":fileId/progress").get(verifyJWT, getFileProcessingPercentage);
+
 
 export default router;

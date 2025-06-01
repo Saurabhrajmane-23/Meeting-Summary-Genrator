@@ -19,8 +19,8 @@ const userSchema = new Schema(
       trim: true,
     },
     avatar: {
-      type: String, // cloudinary url
-      default: "", // Default avatar URL or empty
+      type: String,
+      default: "",
     },
     password: {
       type: String,
@@ -29,6 +29,11 @@ const userSchema = new Schema(
     refreshToken: {
       type: String,
     },
+    isVerified: { type: Boolean, default: false },
+
+    verificationCode: String,
+    
+    codeExpiresAt: Date,
   },
   {
     timestamps: true,

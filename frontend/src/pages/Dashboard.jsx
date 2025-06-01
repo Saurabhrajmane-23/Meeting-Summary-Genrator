@@ -1,7 +1,10 @@
+// task : add process loading bar.
+
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useTheme } from '../context/ThemeContext'; // Add this import at the top
+import { useTheme } from '../context/ThemeContext';
 
 function Dashboard() {
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -23,7 +26,7 @@ function Dashboard() {
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(''); // Add this to your state declarations at the top of the component
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleFileSelect = (event) => {
     const selectedFile = event.target.files[0];
@@ -31,7 +34,6 @@ function Dashboard() {
     setError('');
   };
 
-  // Add function to fetch user's files
   const fetchUserFiles = async () => {
     try {
       setLoading(true);
@@ -64,7 +66,6 @@ function Dashboard() {
     }
   };
 
-  // Add function to fetch user data
   const fetchUserData = async () => {
     try {
       const response = await axios.get('http://localhost:8000/api/v2/users/profile', {
@@ -84,13 +85,11 @@ function Dashboard() {
     }
   };
 
-  // Fetch files and user data on component mount and after successful upload
   useEffect(() => {
     fetchUserFiles();
     fetchUserData();
   }, []);
 
-  // Add this with other useEffect hooks
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isDropdownOpen && !event.target.closest('.relative')) {
@@ -165,7 +164,6 @@ function Dashboard() {
     }
   };
 
-  // function to handle processing
   const handleProcess = async (fileId) => {
     try {
       setProcessingFileId(fileId);
@@ -204,7 +202,6 @@ function Dashboard() {
     }
   };
 
-  // delete handler function
   const handleDelete = async (fileId) => {
     if (!window.confirm('Are you sure you want to delete this file?')) {
       return;
@@ -233,7 +230,6 @@ function Dashboard() {
     }
   };
 
-  // Logout function
   const handleLogout = () => {
     if (!window.confirm('Are you sure you want to logout?')) {
       return;
@@ -242,7 +238,6 @@ function Dashboard() {
     navigate('/login');
   };
 
-  // downloading the transcript
   const handleDownloadTranscript = (fileId, fileName) => {
     const processedFile = processedFiles[fileId];
     if (!processedFile?.transcript) {
@@ -291,7 +286,6 @@ function Dashboard() {
     }
   };
 
-  // Update these drag and drop event handlers
   const handleDragEnter = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -365,9 +359,8 @@ function Dashboard() {
   const filteredFiles = files.filter(file => 
     file.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (file.description && file.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  ); // Add this function before the return statement
+  ); 
 
-  // Add this function near other handler functions in Dashboard.jsx
   const handleDeleteAccount = async () => {
     if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
       return;

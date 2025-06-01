@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import crypto from "crypto";
+import sendEmail from "../utils/nodeMailer.js";
 
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
@@ -22,59 +24,126 @@ const generateAccessAndRefereshTokens = async (userId) => {
   }
 };
 
+const tempUserStore = new Map();
 const registerUser = asyncHandler(async (req, res) => {
-  // step 1 : get user details from frontend
-  const { username, email, password } = req.body;
-  //console.log(email);
+  const { username, email, password, verificationCode } = req.body;
 
-  // validate - check if field is empty
   if ([username, email, password].some((field) => field?.trim() === "")) {
-    throw new ApiError(400, "these fields are required");
+    throw new ApiError(400, "Username, email, and password are required");
   }
 
-  // check if user already exists
   const existingUser = await User.findOne({
     $or: [{ username }, { email }],
   });
 
-  if (existingUser) {
-    return res
-      .status(201)
-      .json(new ApiResponse(200, existingUser, "User already exists"));
-  }
-
-  // avatar handling
-  const avatarLocalPath = req.file?.path;
-  let avatarUrl = ""; // Default empty avatar URL
-
-  if (avatarLocalPath) {
-    const avatar = await uploadOnCloudinary(avatarLocalPath);
-    if (!avatar) {
-      throw new ApiError(500, "Failed to upload avatar to cloudinary");
+  // If verification code is not provided, send verification email
+  if (!verificationCode) {
+    if (existingUser) {
+      return res
+        .status(201)
+        .json(new ApiResponse(200, existingUser, "User already exists"));
     }
-    avatarUrl = avatar.url;
+
+    // Handle avatar upload
+    const avatarLocalPath = req.file?.path;
+    let avatarUrl = "";
+    if (avatarLocalPath) {
+      const avatar = await uploadOnCloudinary(avatarLocalPath);
+      if (!avatar) {
+        throw new ApiError(500, "Failed to upload avatar to cloudinary");
+      }
+      avatarUrl = avatar.url;
+    }
+
+    // Generate verification code
+    const generatedCode = crypto.randomBytes(3).toString("hex");
+    const codeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    // Store temporary data in memory store
+    tempUserStore.set(email, {
+      username,
+      email,
+      password,
+      avatar: avatarUrl,
+      verificationCode: generatedCode,
+      codeExpiresAt,
+    });
+
+    // Send email with verification code
+    await sendEmail(
+      email,
+      "Verify your email",
+      `Hello ${username},\n\nYour verification code is: ${generatedCode}\nThis code will expire in 10 minutes.\n\nPlease use this code to complete your registration.`,
+      username,
+      generatedCode
+    );
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { email },
+          "Verification code sent to your email. Please provide the code to complete registration."
+        )
+      );
   }
 
-  // create user object - create entry in database
+  // If verification code is provided, verify and create user
+  const tempUserData = tempUserStore.get(email);
+
+  if (!tempUserData) {
+    throw new ApiError(400, "No pending registration found for this email");
+  }
+
+  // Check if code has expired
+  if (new Date() > new Date(tempUserData.codeExpiresAt)) {
+    tempUserStore.delete(email);
+    throw new ApiError(
+      400,
+      "Verification code has expired. Please start registration again."
+    );
+  }
+
+  // Verify the code
+  if (tempUserData.verificationCode !== verificationCode) {
+    throw new ApiError(400, "Invalid verification code");
+  }
+
+  // Check again if user exists (safety check)
+  if (existingUser) {
+    tempUserStore.delete(email);
+    throw new ApiError(409, "User already exists");
+  }
+
+  // Create the user now that email is verified
   const user = await User.create({
-    username,
-    email,
-    avatar: avatarUrl, // Use empty string if no avatar was uploaded
-    password,
+    username: tempUserData.username,
+    email: tempUserData.email,
+    avatar: tempUserData.avatar,
+    password: tempUserData.password,
+    isVerified: true,
   });
 
-  // check if user is created successfully or not
+  tempUserStore.delete(email);
+
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
+
   if (!createdUser) {
-    throw new ApiError(500, "Something went wrong while registering the user");
+    throw new ApiError(500, "Something went wrong while creating the user");
   }
 
-  // return success response
   return res
     .status(201)
-    .json(new ApiResponse(200, createdUser, "User registered successfully"));
+    .json(
+      new ApiResponse(
+        201,
+        createdUser,
+        "Email verified successfully. User account created."
+      )
+    );
 });
 
 const loginUser = asyncHandler(async (req, res) => {
@@ -200,4 +269,81 @@ const deleteUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User deleted successfully"));
 });
 
-export { registerUser, loginUser, logoutUser, getUserProfile, deleteUser };
+const verifyEmail = asyncHandler(async (req, res) => {
+  const { email, code } = req.body;
+
+  // Validate input
+  if (!email || !code) {
+    throw new ApiError(400, "Email and code are required");
+  }
+
+  // Check if there's pending registration data
+  const tempUserData = tempUserStore.get(email);
+
+  if (!tempUserData) {
+    throw new ApiError(400, "No pending registration found for this email");
+  }
+
+  // Check if code has expired
+  if (new Date() > new Date(tempUserData.codeExpiresAt)) {
+    tempUserStore.delete(email);
+    throw new ApiError(
+      400,
+      "Verification code has expired. Please start registration again."
+    );
+  }
+
+  // Verify the code
+  if (tempUserData.verificationCode !== code) {
+    throw new ApiError(400, "Invalid verification code");
+  }
+
+  // Check if user already exists (safety check)
+  const existingUser = await User.findOne({
+    $or: [{ username: tempUserData.username }, { email: tempUserData.email }],
+  });
+
+  if (existingUser) {
+    tempUserStore.delete(email);
+    throw new ApiError(409, "User already exists");
+  }
+
+  // Create the user now that email is verified
+  const user = await User.create({
+    username: tempUserData.username,
+    email: tempUserData.email,
+    avatar: tempUserData.avatar,
+    password: tempUserData.password,
+    isVerified: true,
+  });
+
+  // Clear temporary data
+  tempUserStore.delete(email);
+
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  if (!createdUser) {
+    throw new ApiError(500, "Something went wrong while creating the user");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        createdUser,
+        "Email verified successfully. User account created."
+      )
+    );
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  getUserProfile,
+  deleteUser,
+  verifyEmail,
+};

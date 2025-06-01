@@ -88,7 +88,7 @@ const handleSubmit = async (e) => {
 
         <div className="w-1/2 flex justify-center">
           <div className={`fixed p-2.5 top-4 right-4 flex items-center gap-3 border ${
-            isDarkMode ? 'border-white' : 'border-gray-300'
+            isDarkMode ? 'border-white' : 'border-gray-600'
           }`}>
             <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Lights

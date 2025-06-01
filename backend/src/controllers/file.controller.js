@@ -306,6 +306,77 @@ const downloadSummaryPDF = asyncHandler(async (req, res) => {
   }
 });
 
+const getFileProcessingPercentage = asyncHandler(async (req, res) => {
+  try {
+    const { fileId } = req.params;
+
+    // Get file details from database
+    const file = await File.findById(fileId);
+    if (!file) {
+      throw new ApiError(404, "File not found");
+    }
+
+    // Check if file belongs to user
+    if (file.owner.toString() !== req.user._id.toString()) {
+      throw new ApiError(403, "Unauthorized access");
+    }
+
+    // Calculate processing percentage based on completion stages
+    let percentage = 0;
+    const stages = {
+      uploaded: 20,        // File uploaded to cloudinary
+      transcribed: 60,     // Audio transcribed
+      summarized: 100      // AI summary generated
+    };
+
+    // Stage 1: File uploaded (always true if we found the file)
+    if (file.cloudinaryUrl) {
+      percentage = stages.uploaded;
+    }
+
+    // Stage 2: Transcription completed
+    if (file.transcript && file.transcript.length > 0) {
+      percentage = stages.transcribed;
+    }
+
+    // Stage 3: AI Summary completed
+    if (file.aiSummary && Object.keys(file.aiSummary).length > 0) {
+      percentage = stages.summarized;
+    }
+
+    // Determine processing status
+    let status = "pending";
+    if (percentage === 100) {
+      status = "completed";
+    } else if (percentage > 20) {
+      status = "processing";
+    }
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          fileId: file._id,
+          fileName: file.fileName,
+          percentage: percentage,
+          status: status,
+          stages: {
+            uploaded: file.cloudinaryUrl ? true : false,
+            transcribed: file.transcript ? true : false,
+            summarized: file.aiSummary ? true : false
+          },
+          isProcessed: file.isProcessed || false,
+          isAnalyzed: file.isAnalyzed || false
+        },
+        "Processing percentage retrieved successfully"
+      )
+    );
+  } catch (error) {
+    console.error("Processing percentage error:", error);
+    throw new ApiError(500, error?.message || "Error getting processing percentage");
+  }
+});
+
 export {
   uploadFile,
   processAudio,
@@ -313,4 +384,5 @@ export {
   deleteFile,
   transcribeAudio,
   downloadSummaryPDF,
+  getFileProcessingPercentage,
 };
