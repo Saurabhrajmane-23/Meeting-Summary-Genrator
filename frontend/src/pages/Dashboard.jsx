@@ -22,6 +22,7 @@ function Dashboard() {
   const [processedFiles, setProcessedFiles] = useState({});
   const [userData, setUserData] = useState({
     username: '',
+    email: '',
     avatar: ''
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -77,6 +78,7 @@ function Dashboard() {
       if (response.data?.success) {
         setUserData({
           username: response.data.data.username,
+          email: response.data.data.email,
           avatar: response.data.data.avatar
         });
       }
@@ -356,7 +358,7 @@ function Dashboard() {
     }
   };
 
-  const filteredFiles = files.filter(file => 
+  const filteredFiles = files.filter(file =>
     file.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (file.description && file.description.toLowerCase().includes(searchQuery.toLowerCase()))
   ); 
@@ -484,6 +486,18 @@ function Dashboard() {
                       }`}
                     >
                       Logout
+                    </button>
+
+                    {/* payment button */}
+                    <button
+                      onClick={() => navigate('/plans')}
+                      className={`block w-full text-left px-4 py-2 text-sm ${
+                        isDarkMode 
+                          ? 'text-gray-200 hover:bg-gray-700' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      Get Pro
                     </button>
 
                     {/* Delete Account button */}
@@ -774,10 +788,15 @@ function Dashboard() {
                       }`}>
                         {(file.fileSize / (1024 * 1024)).toFixed(2)} MB
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-900'
-                      }`}>
-                        {new Date(file.createdAt).toLocaleString()}
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                        {new Date(file.createdAt).toLocaleString('en-UK', {
+                          year: 'numeric',
+                          month: 'numeric',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                         <button

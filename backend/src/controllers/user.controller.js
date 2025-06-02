@@ -5,6 +5,12 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import crypto from "crypto";
 import sendEmail from "../utils/nodeMailer.js";
+import Razorpay from "razorpay";
+
+const razorpayInstance = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 const generateAccessAndRefereshTokens = async (userId) => {
   try {
@@ -23,6 +29,86 @@ const generateAccessAndRefereshTokens = async (userId) => {
     );
   }
 };
+
+const loginUser = asyncHandler(async (req, res) => {
+  // step 1 : get user details from frontend
+  const { username, email, password } = req.body;
+  // console.log(email);
+
+  // check if email or username is provided
+  if (!(email || username)) {
+    throw new ApiError(400, "Email or username is required");
+  }
+
+  // find user by email or username
+  const user = await User.findOne({
+    $or: [{ email }, { username }],
+  });
+
+  if (!user) {
+    throw new ApiError(400, "User not found");
+  }
+
+  // check if password is correct or not
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid password");
+  }
+
+  const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
+    user._id
+  );
+
+  console.log(accessToken, refreshToken);
+
+  // send in cookies
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        "Logged in successfully"
+      )
+    );
+});
+
+const logoutUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      refreshToken: undefined,
+    },
+    {
+      new: true,
+    }
+  );
+
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "Logged out successfully"));
+});
 
 const tempUserStore = new Map();
 const registerUser = asyncHandler(async (req, res) => {
@@ -146,86 +232,6 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
-const loginUser = asyncHandler(async (req, res) => {
-  // step 1 : get user details from frontend
-  const { username, email, password } = req.body;
-  // console.log(email);
-
-  // check if email or username is provided
-  if (!(email || username)) {
-    throw new ApiError(400, "Email or username is required");
-  }
-
-  // find user by email or username
-  const user = await User.findOne({
-    $or: [{ email }, { username }],
-  });
-
-  if (!user) {
-    throw new ApiError(400, "User not found");
-  }
-
-  // check if password is correct or not
-  const isPasswordValid = await user.isPasswordCorrect(password);
-  if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid password");
-  }
-
-  const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
-    user._id
-  );
-
-  console.log(accessToken, refreshToken);
-
-  // send in cookies
-  const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
-  return res
-    .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(
-      new ApiResponse(
-        200,
-        {
-          user: loggedInUser,
-          accessToken,
-          refreshToken,
-        },
-        "Logged in successfully"
-      )
-    );
-});
-
-const logoutUser = asyncHandler(async (req, res) => {
-  await User.findByIdAndUpdate(
-    req.user._id,
-    {
-      refreshToken: undefined,
-    },
-    {
-      new: true,
-    }
-  );
-
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
-  return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, {}, "Logged out successfully"));
-});
-
 const getUserProfile = asyncHandler(async (req, res) => {
   // Get user details from req.user (set by auth middleware)
   const user = await User.findById(req.user?._id).select(
@@ -339,6 +345,41 @@ const verifyEmail = asyncHandler(async (req, res) => {
     );
 });
 
+const createPaymentOrder = asyncHandler(async (req, res) => {
+  const amount = 5;
+
+  const options = {
+    amount: amount * 100,
+    currency: "USD",
+    receipt: `receipt_order_${crypto.randomBytes(10).toString("hex")}`,
+  };
+
+  try {
+    const order = await razorpayInstance.orders.create(options);
+
+    if (!order) {
+      throw new ApiError(500, "Failed to create Razorpay order");
+    }
+
+    res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          orderId: order.id,
+          amount: order.amount / 100,
+          currency: order.currency,
+        },
+        "USD $5 order created successfully"
+      )
+    );
+  } catch (error) {
+    console.error("Razorpay order error:", error);
+    throw new ApiError(500, "Razorpay order creation failed");
+  }
+});
+
+
+
 export {
   registerUser,
   loginUser,
@@ -346,4 +387,5 @@ export {
   getUserProfile,
   deleteUser,
   verifyEmail,
+  createPaymentOrder,
 };

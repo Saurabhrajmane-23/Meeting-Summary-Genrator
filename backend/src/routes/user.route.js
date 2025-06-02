@@ -1,10 +1,11 @@
-import { 
-  registerUser, 
-  loginUser, 
-  logoutUser, 
-  getUserProfile, 
-  deleteUser, 
-  verifyEmail
+import {
+  registerUser,
+  loginUser,
+  logoutUser,
+  getUserProfile,
+  deleteUser,
+  verifyEmail,
+  createPaymentOrder,
 } from "../controllers/user.controller.js";
 
 import { Router } from "express";
@@ -22,5 +23,6 @@ router.route("/verify-email").post(verifyEmail);
 router.route("/logout").post(verifyJWT, logoutUser);
 router.route("/profile").get(verifyJWT, getUserProfile);
 router.route("/delete-account").delete(verifyJWT, deleteUser);
+router.route("/create-payment").post(verifyJWT, createPaymentOrder);
 
 export default router;
