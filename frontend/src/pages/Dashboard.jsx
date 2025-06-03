@@ -198,7 +198,9 @@ function Dashboard() {
       }
     } catch (error) {
       console.error('Process error:', error);
-      alert('Error processing file');
+      if (error.response?.status === 469) {
+        alert('Monthly processing limit exceeded. Please upgrade your plan to process more files.');
+      }
     } finally {
       setProcessingFileId(null);
     }

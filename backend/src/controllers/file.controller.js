@@ -128,6 +128,11 @@ const processAudio = asyncHandler(async (req, res) => {
       { new: true }
     );
 
+    // increment meeting count for the user
+    const user = req.user;
+    user.meetingCount += 1;
+    await user.save();
+
     // Clean up downloaded file only after transcription is complete
     if (fs.existsSync(localFilePath)) {
       fs.unlinkSync(localFilePath);
@@ -324,9 +329,9 @@ const getFileProcessingPercentage = asyncHandler(async (req, res) => {
     // Calculate processing percentage based on completion stages
     let percentage = 0;
     const stages = {
-      uploaded: 20,        // File uploaded to cloudinary
-      transcribed: 60,     // Audio transcribed
-      summarized: 100      // AI summary generated
+      uploaded: 20, // File uploaded to cloudinary
+      transcribed: 60, // Audio transcribed
+      summarized: 100, // AI summary generated
     };
 
     // Stage 1: File uploaded (always true if we found the file)
@@ -363,17 +368,20 @@ const getFileProcessingPercentage = asyncHandler(async (req, res) => {
           stages: {
             uploaded: file.cloudinaryUrl ? true : false,
             transcribed: file.transcript ? true : false,
-            summarized: file.aiSummary ? true : false
+            summarized: file.aiSummary ? true : false,
           },
           isProcessed: file.isProcessed || false,
-          isAnalyzed: file.isAnalyzed || false
+          isAnalyzed: file.isAnalyzed || false,
         },
         "Processing percentage retrieved successfully"
       )
     );
   } catch (error) {
     console.error("Processing percentage error:", error);
-    throw new ApiError(500, error?.message || "Error getting processing percentage");
+    throw new ApiError(
+      500,
+      error?.message || "Error getting processing percentage"
+    );
   }
 });
 

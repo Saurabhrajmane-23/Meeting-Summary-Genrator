@@ -32,8 +32,22 @@ const userSchema = new Schema(
     isVerified: { type: Boolean, default: false },
 
     verificationCode: String,
-    
+
     codeExpiresAt: Date,
+
+    plan: {
+      type: String,
+      enum: ['basic', 'pro', 'enterprise'],
+      default: 'basic',
+    },
+    meetingCount: {
+      type: Number,
+      default: 0,
+    },
+    lastReset: {
+      type: Date,
+      default: Date.now,
+    },
   },
   {
     timestamps: true,

@@ -174,7 +174,7 @@ const sendEmail = async (
       html: htmlContent,
     });
 
-    console.log("Email sent successfully!");
+    console.log(`Email sent successfully to ${to}`);
   } catch (error) {
     console.error("Error sending email:", error);
   }

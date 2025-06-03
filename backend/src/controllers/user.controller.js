@@ -378,8 +378,6 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
   }
 });
 
-
-
 export {
   registerUser,
   loginUser,
