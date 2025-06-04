@@ -16,8 +16,6 @@ app.use(
   })
 );
 
-app.use("/api/v2/payments", paymentRouter);
-
 app.use(express.json({ limit: "500mb" }));
 app.use(express.urlencoded({ extended: true, limit: "500mb" }));
 app.use(express.static("public"));
@@ -31,5 +29,6 @@ import paymentRouter from "./routes/payment.route.js";
 //routes decleration
 app.use("/api/v2/users", userRouter);
 app.use("/api/v2/files", fileRouter);
+app.use("/api/v2/payments", paymentRouter);
 
 export default app;
