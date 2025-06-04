@@ -9,6 +9,9 @@ const upload = multer();
 // for monthly resetting of Usage
 import "./jobs/resetUsage.job.js";
 
+// for monthly reset of plan
+import "./jobs/resetPlan.job.js";
+
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN,

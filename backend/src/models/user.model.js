@@ -37,8 +37,8 @@ const userSchema = new Schema(
 
     plan: {
       type: String,
-      enum: ['basic', 'pro', 'enterprise'],
-      default: 'basic',
+      enum: ["basic", "monthly", "yearly"],
+      default: "basic",
     },
     meetingCount: {
       type: Number,
@@ -47,6 +47,12 @@ const userSchema = new Schema(
     lastReset: {
       type: Date,
       default: Date.now,
+    },
+    planStartedAt: {
+      type: Date,
+    },
+    planExpiresAt: {
+      type: Date,
     },
   },
   {

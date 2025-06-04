@@ -346,13 +346,23 @@ const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 const createPaymentOrder = asyncHandler(async (req, res) => {
-  const amount = 5;
-
+  const { planType } = req.body;
   const userId = req.user._id;
-  const planType = req.body.planType;
+
+  // Define pricing in USD cents
+  const pricing = {
+    monthly: 5 * 100, // $5 in cents
+    yearly: 50 * 100, // $50 in cents
+  };
+
+  const amount = pricing[planType];
+
+  if (!amount) {
+    throw new ApiError(400, "Invalid plan type. Choose 'monthly' or 'yearly'.");
+  }
 
   const options = {
-    amount: amount * 100,
+    amount: amount,
     currency: "USD",
     receipt: `receipt_order_${crypto.randomBytes(10).toString("hex")}`,
     notes: {
@@ -375,8 +385,9 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
           orderId: order.id,
           amount: order.amount / 100,
           currency: order.currency,
+          planType,
         },
-        "USD $5 order created successfully"
+        `USD $${amount / 100} ${planType} plan order created successfully`
       )
     );
   } catch (error) {

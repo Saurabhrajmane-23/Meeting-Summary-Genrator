@@ -26,7 +26,7 @@ const Plans = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/v2/users/profile', {
+      const response = await axios.get('https://meeting-summary-genrator.onrender.com/api/v2/users/profile', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -50,7 +50,7 @@ const Plans = () => {
     }
 
     try {
-      const response = await axios.delete('http://localhost:8000/api/v2/users/delete-account', {
+      const response = await axios.delete('https://meeting-summary-genrator.onrender.com/api/v2/users/delete-account', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -70,93 +70,86 @@ const Plans = () => {
     fetchUserData();
   }, []);
 
-  const handlePayment = async () => {
-    setLoading(true);
+  const handlePayment = async (planType) => {
+  setLoading(true);
 
-    try {
-      const response = await axios.post(
-        'http://localhost:8000/api/v2/users/create-payment',
-        {},
-        {
+  try {
+    const response = await axios.post(
+      'https://meeting-summary-genrator.onrender.com/api/v2/users/create-payment',
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      }
+    );
+
+    const { orderId, amount, currency } = response.data.data;
+
+    const options = {
+      key: 'rzp_test_oifQCL4ShUZK2e',
+      amount: amount * 100,
+      currency: currency,
+      name: 'Meet Beater',
+      description: `Payment for ${planType} Plan`,
+      order_id: orderId,
+      handler: function (response) {
+        alert('Payment Successful!');
+        console.log('Razorpay Payment Response:', response);
+
+        axios.post('https://meeting-summary-genrator.onrender.com/api/v2/payments/verify-payment', {
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_signature: response.razorpay_signature,
+          planType, // <-- dynamic
+        }, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
           },
-        }
-      );
+        });
+      },
+      theme: {
+        color: '#291145',
+      },
+    };
 
-      const { orderId, amount, currency } = response.data.data;
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  } catch (error) {
+    console.error('Payment error:', error.response || error);
+    alert(
+      error.response?.data?.message ||
+      error.message ||
+      'Payment failed. Please try again.'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
-      const options = {
-        key: 'rzp_test_oifQCL4ShUZK2e',
-        amount: amount * 100,
-        currency: currency,
-        name: 'Meet Beater',
-        description: 'Payment for File Upload Access',
-        order_id: orderId,
-        handler: function (response) {
-          alert('Payment Successful!');
-          console.log('Razorpay Payment Response:', response);
-
-          // Send response to backend to verify & update user
-          axios.post('http://localhost:8000/api/v2/payments/verify-payment', {
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
-            planType: 'pro',
-          }, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-            },
-          });
-        },
-        theme: {
-          color: '#291145',
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (error) {
-      console.error('Payment error:', error.response || error);
-      alert(
-        error.response?.data?.message ||
-        error.message ||
-        'Payment failed. Please try again.'
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const plans = [
-    {
-      name: "Basic",
-      price: "$0/month",
-      features: [
-        "✓ Up to 3 meeting summaries/month",
-        "✓ Searchable history (7 days)",
-        "✓ Email support"
-      ]
-    },
-    {
-      name: "Pro",
-      price: "$5/month",
-      features: [
-        "✓ 50 meeting summaries",
-        "✓ Full searchable history",
-        "✓ Priority support"
-      ]
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      features: [
-        "✓ All Pro features",
-        "✓ Team collaboration dashboard",
-        "✓ Dedicated account manager"
-      ]
-    }
-  ];
+  {
+    name: "Monthly",
+    price: "$5/month",
+    features: [
+      "✓ 50 meeting summaries",
+      "✓ Full searchable history",
+      "✓ Priority support"
+    ]
+  },
+  {
+    name: "Yearly",
+    price: "$50/year",
+    features: [
+      "✓ 600 meeting summaries",
+      "✓ Full searchable history",
+      "✓ Priority support",
+      "✓ 2 months free"
+    ]
+  }
+];
+
 
   useEffect(() => {
       const handleClickOutside = (event) => {
@@ -313,40 +306,41 @@ const Plans = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {plans.map((plan, index) => (
-            <div
-              key={index}
-              className={`rounded-2xl shadow-lg p-8 border ${
-                isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
-              }`}
-            >
-              <h2 className="text-2xl font-semibold mb-2">{plan.name}</h2>
-              <p className="text-xl font-bold mb-4">{plan.price}</p>
-              <ul className="mb-6 space-y-2 text-left">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx}>{feature}</li>
-                ))}
-              </ul>
-              <button
-                onClick={plan.name !== 'Basic' ? handlePayment : undefined}
-                disabled={plan.name === 'Basic' || loading}
-                className={`w-full py-2 rounded-lg flex items-center justify-center gap-2 ${
-                  isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
-                } text-white font-semibold disabled:opacity-50`}
-              >
-                {loading && plan.name !== 'Basic' ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                    </svg>
-                    Loading...
-                  </>
-                ) : (
-                  plan.name === 'Basic' ? 'Already in use' : 'Get Started'
-                )}
-              </button>
-            </div>
-          ))}
+  <div
+    key={index}
+    className={`rounded-2xl shadow-lg p-8 border ${
+      isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
+    }`}
+  >
+    <h2 className="text-2xl font-semibold mb-2">{plan.name}</h2>
+    <p className="text-xl font-bold mb-4">{plan.price}</p>
+    <ul className="mb-6 space-y-2 text-left">
+      {plan.features.map((feature, idx) => (
+        <li key={idx}>{feature}</li>
+      ))}
+    </ul>
+    <button
+      onClick={() => handlePayment(plan.name.toLowerCase())}
+      disabled={loading}
+      className={`w-full py-2 rounded-lg flex items-center justify-center gap-2 ${
+        isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
+      } text-white font-semibold disabled:opacity-50`}
+    >
+      {loading ? (
+        <>
+          <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          Loading...
+        </>
+      ) : (
+        'Get Started'
+      )}
+    </button>
+  </div>
+))}
+
         </div>
       </div>
     </div>
