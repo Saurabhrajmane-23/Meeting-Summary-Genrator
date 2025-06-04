@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+
 const Plans = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ const Plans = () => {
   const [userData, setUserData] = useState({
       username: '',
       email: '',
-      avatar: ''
+      avatar: '',
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -25,7 +26,7 @@ const Plans = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/v2/users/profile', {
+      const response = await axios.get('https://meeting-summary-genrator.onrender.com/api/v2/users/profile', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -49,7 +50,7 @@ const Plans = () => {
     }
 
     try {
-      const response = await axios.delete('http://localhost:8000/api/v2/users/delete-account', {
+      const response = await axios.delete('https://meeting-summary-genrator.onrender.com/api/v2/users/delete-account', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -71,10 +72,13 @@ const Plans = () => {
 
   const handlePayment = async () => {
     setLoading(true);
+
     try {
       const response = await axios.post(
-        'http://localhost:8000/api/v2/users/create-payment',
-        {},
+        'https://meeting-summary-genrator.onrender.com/api/v2/users/create-payment',
+        {
+          planType: 'pro'
+        },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -96,7 +100,7 @@ const Plans = () => {
           console.log('Razorpay Payment Response:', response);
         },
         theme: {
-          color: '#3399cc',
+          color: '#291145',
         },
       };
 
@@ -110,7 +114,7 @@ const Plans = () => {
         'Payment failed. Please try again.'
       );
     } finally {
-      setLoading(false); // 👈 Stop loader
+      setLoading(false);
     }
   };
 
@@ -278,10 +282,10 @@ const Plans = () => {
         </div>
       </nav>
       {/* Back Button */}
-      <div className="fixed top-3 left-6 z-50">
+      <div className="fixed top-3 left-20 z-50">
         <button
           onClick={() => navigate('/dashboard')}
-          className={`px-4 py-2 border font-medium transition ${
+          className={`px-4 py-2 font-medium transition ${
             isDarkMode
               ? 'bg-gray-800 text-white border-white hover:bg-gray-700'
               : 'bg-gray-100 text-gray-900 border-gray-600 hover:bg-gray-200'

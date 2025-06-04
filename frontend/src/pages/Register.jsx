@@ -42,7 +42,7 @@ function Register() {
     formDataToSend.append('password', formData.password);
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/v2/users/register",
+        "https://meeting-summary-genrator.onrender.com/api/v2/users/register",
         formDataToSend,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
@@ -76,7 +76,7 @@ function Register() {
     setIsVerifying(true); // Start verification loading
     
     try {
-      const res = await axios.post("http://localhost:8000/api/v2/users/verify-email", {
+      const res = await axios.post("https://meeting-summary-genrator.onrender.com/api/v2/users/verify-email", {
         email: emailToVerify,
         code: verificationCode
       });

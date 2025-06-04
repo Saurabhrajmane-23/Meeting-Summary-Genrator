@@ -3,7 +3,10 @@ import { razorpayWebhookHandler } from "../controllers/payment.controller.js";
 
 const router = express.Router();
 
-// Route to handle Razorpay webhook events
-router.post("/razorpay/webhook", express.json(), razorpayWebhookHandler);
+router.post(
+  "/razorpay/webhook",
+  express.raw({ type: "*/*" }),
+  razorpayWebhookHandler
+);
 
 export default router;

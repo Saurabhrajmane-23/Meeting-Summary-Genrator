@@ -348,10 +348,17 @@ const verifyEmail = asyncHandler(async (req, res) => {
 const createPaymentOrder = asyncHandler(async (req, res) => {
   const amount = 5;
 
+  const userId = req.user._id;
+  const planType = req.body.planType;
+
   const options = {
     amount: amount * 100,
     currency: "USD",
     receipt: `receipt_order_${crypto.randomBytes(10).toString("hex")}`,
+    notes: {
+      userId: userId.toString(),
+      planType,
+    },
   };
 
   try {
