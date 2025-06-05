@@ -9,12 +9,12 @@ const userSchema = new Schema(
       required: true,
       unique: true,
       trim: true,
-      index: true,
+      index: true, // This already creates an index
     },
     email: {
       type: String,
       required: true,
-      unique: true,
+      unique: true, // This already creates an index
       lowercase: true,
       trim: true,
     },
@@ -28,7 +28,7 @@ const userSchema = new Schema(
     },
     googleId: {
       type: String,
-      unique: true,
+      unique: true, // This already creates an index
       sparse: true, // Allows null values while maintaining uniqueness
     },
     authProvider: {
@@ -75,13 +75,11 @@ userSchema.pre("save", async function (next) {
 
   this.password = await bcrypt.hash(this.password, 5);
   next();
-}); // encrypts the password before saving it into backend
+});
 
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
-}; // just a function to check whether password is correct or not
-// kind of a middleware
-// returns boolean value
+};
 
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
@@ -97,6 +95,7 @@ userSchema.methods.generateAccessToken = function () {
     }
   );
 };
+
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {

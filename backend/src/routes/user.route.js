@@ -8,7 +8,6 @@ import {
   createPaymentOrder,
   googleAuth,
   googleCallback,
-  googleLogin,
 } from "../controllers/user.controller.js";
 
 import { Router } from "express";
@@ -23,20 +22,20 @@ router.route("/register").post(upload.single("avatar"), registerUser);
 router.route("/login").post(loginUser);
 router.route("/verify-email").post(verifyEmail);
 
-// Google OAuth routes
-router.route("/auth/google").get(googleAuth);
-router
-  .route("/auth/google/callback")
-  .get(
-    passport.authenticate("google", { failureRedirect: "/login" }),
-    googleCallback
-  );
-router.route("/auth/google/login").post(googleLogin);
-
 // secured routes
 router.route("/logout").post(verifyJWT, logoutUser);
 router.route("/profile").get(verifyJWT, getUserProfile);
 router.route("/delete-account").delete(verifyJWT, deleteUser);
 router.route("/create-payment").post(verifyJWT, createPaymentOrder);
+
+// Google OAuth routes
+router.route("/auth/google").get(googleAuth);
+router.route("/auth/google/callback").get(
+  passport.authenticate("google", {
+    failureRedirect: "http://localhost:5173/login?error=authentication_failed",
+    session: true,
+  }),
+  googleCallback
+);
 
 export default router;

@@ -3,7 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import multer from "multer";
 import session from "express-session";
-import passport from "./config/passport.js";
+import passport from "./config/passport.js"; // Import passport config
 
 const app = express();
 const upload = multer();
@@ -18,15 +18,10 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "500mb" }));
-app.use(express.urlencoded({ extended: true, limit: "500mb" }));
-app.use(express.static("public"));
-app.use(cookieParser());
-
-// Session configuration for Passport
+// Session configuration (required for Passport)
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "your-secret-key",
+    secret: process.env.SESSION_SECRET || "your-session-secret-key-12345",
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -39,6 +34,11 @@ app.use(
 // Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.use(express.json({ limit: "500mb" }));
+app.use(express.urlencoded({ extended: true, limit: "500mb" }));
+app.use(express.static("public"));
+app.use(cookieParser());
 
 // routes import
 import userRouter from "./routes/user.route.js";
