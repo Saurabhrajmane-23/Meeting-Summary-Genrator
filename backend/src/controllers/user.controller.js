@@ -6,6 +6,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import crypto from "crypto";
 import sendEmail from "../utils/nodeMailer.js";
 import Razorpay from "razorpay";
+import passport from "../config/passport.js";
 
 const razorpayInstance = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -347,22 +348,19 @@ const verifyEmail = asyncHandler(async (req, res) => {
 
 const createPaymentOrder = asyncHandler(async (req, res) => {
   const { planType } = req.body;
-  const userId = req.user._id;
 
-  // Define pricing in USD cents
-  const pricing = {
-    monthly: 5 * 100, // $5 in cents
-    yearly: 50 * 100, // $50 in cents
-  };
-
-  const amount = pricing[planType];
-
-  if (!amount) {
-    throw new ApiError(400, "Invalid plan type. Choose 'monthly' or 'yearly'.");
+  // Validate plan type
+  if (!planType || !["monthly", "yearly"].includes(planType)) {
+    throw new ApiError(400, "Invalid plan type. Must be 'monthly' or 'yearly'");
   }
 
+  const userId = req.user._id;
+
+  // Set amount based on plan type
+  const amount = planType === "monthly" ? 5 : 50;
+
   const options = {
-    amount: amount,
+    amount: amount * 100, // Razorpay expects amount in paise
     currency: "USD",
     receipt: `receipt_order_${crypto.randomBytes(10).toString("hex")}`,
     notes: {
@@ -385,14 +383,163 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
           orderId: order.id,
           amount: order.amount / 100,
           currency: order.currency,
-          planType,
+          planType: planType,
         },
-        `USD $${amount / 100} ${planType} plan order created successfully`
+        `${
+          planType === "monthly" ? "Monthly" : "Yearly"
+        } plan order created successfully`
       )
     );
   } catch (error) {
     console.error("Razorpay order error:", error);
     throw new ApiError(500, "Razorpay order creation failed");
+  }
+});
+
+// Google OAuth login
+const googleAuth = passport.authenticate("google", {
+  scope: ["profile", "email"],
+});
+
+// Google OAuth callback
+const googleCallback = asyncHandler(async (req, res) => {
+  try {
+    const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
+      req.user._id
+    );
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+    };
+
+    // Redirect to frontend with tokens
+    res
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .redirect(
+        `${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard`
+      );
+  } catch (error) {
+    console.error("Google callback error:", error);
+    res.redirect(
+      `${
+        process.env.FRONTEND_URL || "http://localhost:3000"
+      }/login?error=auth_failed`
+    );
+  }
+});
+
+// Google login for existing users (alternative approach)
+const googleLogin = asyncHandler(async (req, res) => {
+  const { googleToken } = req.body;
+
+  if (!googleToken) {
+    throw new ApiError(400, "Google token is required");
+  }
+
+  try {
+    // Verify Google token
+    const response = await fetch(
+      `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${googleToken}`,
+      {
+        headers: {
+          Authorization: `Bearer ${googleToken}`,
+          Accept: "application/json",
+        },
+      }
+    );
+
+    const googleUser = await response.json();
+
+    if (!googleUser.email) {
+      throw new ApiError(400, "Failed to get user info from Google");
+    }
+
+    // Find user by email or Google ID
+    let user = await User.findOne({
+      $or: [{ email: googleUser.email }, { googleId: googleUser.id }],
+    });
+
+    if (!user) {
+      // Create new user
+      let avatarUrl = "";
+
+      if (googleUser.picture) {
+        try {
+          const response = await fetch(googleUser.picture);
+          const buffer = await response.buffer();
+          const tempPath = `./public/temp/google_avatar_${googleUser.id}.jpg`;
+          require("fs").writeFileSync(tempPath, buffer);
+
+          const avatar = await uploadOnCloudinary(tempPath);
+          if (avatar) {
+            avatarUrl = avatar.url;
+          }
+
+          require("fs").unlinkSync(tempPath);
+        } catch (avatarError) {
+          console.log("Error uploading Google avatar:", avatarError);
+        }
+      }
+
+      let username =
+        googleUser.name?.replace(/\s+/g, "").toLowerCase() ||
+        googleUser.email.split("@")[0];
+
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        username = `${username}_${Date.now()}`;
+      }
+
+      user = await User.create({
+        googleId: googleUser.id,
+        username,
+        email: googleUser.email,
+        avatar: avatarUrl,
+        password: Math.random().toString(36).slice(-8),
+        isVerified: true,
+        authProvider: "google",
+      });
+    } else {
+      // Update Google ID if not set
+      if (!user.googleId) {
+        user.googleId = googleUser.id;
+        await user.save();
+      }
+    }
+
+    const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(
+      user._id
+    );
+
+    const loggedInUser = await User.findById(user._id).select(
+      "-password -refreshToken"
+    );
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          {
+            user: loggedInUser,
+            accessToken,
+            refreshToken,
+          },
+          "Logged in successfully with Google"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(500, "Google authentication failed");
   }
 });
 
@@ -404,4 +551,7 @@ export {
   deleteUser,
   verifyEmail,
   createPaymentOrder,
+  googleAuth,
+  googleCallback,
+  googleLogin,
 };

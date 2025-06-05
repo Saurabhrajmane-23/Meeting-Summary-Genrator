@@ -14,7 +14,7 @@ const Plans = () => {
       avatar: '',
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   const handleLogout = () => {
     if (!window.confirm('Are you sure you want to logout?')) {
@@ -26,7 +26,7 @@ const Plans = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get('https://meeting-summary-genrator.onrender.com/api/v2/users/profile', {
+      const response = await axios.get('http://localhost:8000/api/v2/users/profile', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -50,7 +50,7 @@ const Plans = () => {
     }
 
     try {
-      const response = await axios.delete('https://meeting-summary-genrator.onrender.com/api/v2/users/delete-account', {
+      const response = await axios.delete('http://localhost:8000/api/v2/users/delete-account', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -71,85 +71,108 @@ const Plans = () => {
   }, []);
 
   const handlePayment = async (planType) => {
-  setLoading(true);
+    setLoading(true);
+    setSelectedPlan(planType);
 
-  try {
-    const response = await axios.post(
-      'https://meeting-summary-genrator.onrender.com/api/v2/users/create-payment',
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      }
-    );
-
-    const { orderId, amount, currency } = response.data.data;
-
-    const options = {
-      key: 'rzp_test_oifQCL4ShUZK2e',
-      amount: amount * 100,
-      currency: currency,
-      name: 'Meet Beater',
-      description: `Payment for ${planType} Plan`,
-      order_id: orderId,
-      handler: function (response) {
-        alert('Payment Successful!');
-        console.log('Razorpay Payment Response:', response);
-
-        axios.post('https://meeting-summary-genrator.onrender.com/api/v2/payments/verify-payment', {
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_order_id: response.razorpay_order_id,
-          razorpay_signature: response.razorpay_signature,
-          planType, // <-- dynamic
-        }, {
+    try {
+      const response = await axios.post(
+        'http://localhost:8000/api/v2/users/create-payment',
+        { planType },
+        {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
           },
-        });
-      },
-      theme: {
-        color: '#291145',
-      },
-    };
+        }
+      );
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
-  } catch (error) {
-    console.error('Payment error:', error.response || error);
-    alert(
-      error.response?.data?.message ||
-      error.message ||
-      'Payment failed. Please try again.'
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      const { orderId, amount, currency, planType: responsePlanType } = response.data.data;
 
+      const options = {
+        key: 'rzp_test_oifQCL4ShUZK2e',
+        amount: amount * 100,
+        currency: currency,
+        name: 'Meet Beater AI',
+        description: `Payment for ${responsePlanType === 'monthly' ? 'Monthly' : 'Yearly'} Plan`,
+        order_id: orderId,
+        handler: function (response) {
+          // Send response to backend to verify & update user
+          axios.post('http://localhost:8000/api/v2/payments/verify-payment', {
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+            planType: responsePlanType,
+          }, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            },
+          }).then(() => {
+            alert(`${responsePlanType === 'monthly' ? 'Monthly' : 'Yearly'} Plan activated successfully!`);
+            // Optionally redirect to dashboard
+            navigate('/dashboard');
+          }).catch((error) => {
+            console.error('Payment verification error:', error);
+            alert('Payment successful but verification failed. Please contact support.');
+          });
+        },
+        theme: {
+          color: '#291145',
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      console.error('Payment error:', error.response || error);
+      alert(
+        error.response?.data?.message ||
+        error.message ||
+        'Payment failed. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+      setSelectedPlan(null);
+    }
+  };
 
   const plans = [
-  {
-    name: "Monthly",
-    price: "$5/month",
-    features: [
-      "✓ 50 meeting summaries",
-      "✓ Full searchable history",
-      "✓ Priority support"
-    ]
-  },
-  {
-    name: "Yearly",
-    price: "$50/year",
-    features: [
-      "✓ 600 meeting summaries",
-      "✓ Full searchable history",
-      "✓ Priority support",
-      "✓ 2 months free"
-    ]
-  }
-];
-
+    {
+      name: "Basic",
+      price: "Free",
+      features: [
+        "✓ Up to 3 meeting summaries/month",
+        "✓ Basic transcription",
+        "✓ Email support"
+      ],
+      planType: "basic"
+    },
+    {
+      name: "Monthly",
+      price: "$5/month",
+      features: [
+        "✓ Up to 50 meeting summaries/month",
+        "✓ Advanced AI summaries",
+        "✓ Full searchable history",
+        "✓ Priority support",
+        "✓ PDF export"
+      ],
+      planType: "monthly"
+    },
+    {
+      name: "Yearly",
+      price: "$50/year",
+      originalPrice: "$60/year",
+      savings: "Save $10",
+      features: [
+        "✓ Unlimited meeting summaries",
+        "✓ Advanced AI summaries",
+        "✓ Full searchable history",
+        "✓ Priority support",
+        "✓ PDF export",
+        "✓ Team collaboration (coming soon)"
+      ],
+      planType: "yearly"
+    }
+  ];
 
   useEffect(() => {
       const handleClickOutside = (event) => {
@@ -306,41 +329,61 @@ const Plans = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {plans.map((plan, index) => (
-  <div
-    key={index}
-    className={`rounded-2xl shadow-lg p-8 border ${
-      isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
-    }`}
-  >
-    <h2 className="text-2xl font-semibold mb-2">{plan.name}</h2>
-    <p className="text-xl font-bold mb-4">{plan.price}</p>
-    <ul className="mb-6 space-y-2 text-left">
-      {plan.features.map((feature, idx) => (
-        <li key={idx}>{feature}</li>
-      ))}
-    </ul>
-    <button
-      onClick={() => handlePayment(plan.name.toLowerCase())}
-      disabled={loading}
-      className={`w-full py-2 rounded-lg flex items-center justify-center gap-2 ${
-        isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
-      } text-white font-semibold disabled:opacity-50`}
-    >
-      {loading ? (
-        <>
-          <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-          </svg>
-          Loading...
-        </>
-      ) : (
-        'Get Started'
-      )}
-    </button>
-  </div>
-))}
-
+            <div
+              key={index}
+              className={`rounded-2xl shadow-lg p-8 border relative ${
+                isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
+              } ${plan.planType === 'yearly' ? 'ring-2 ring-blue-500' : ''}`}
+            >
+              {plan.savings && (
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                    {plan.savings}
+                  </span>
+                </div>
+              )}
+              
+              <h2 className="text-2xl font-semibold mb-2">{plan.name}</h2>
+              <div className="mb-4">
+                <p className="text-xl font-bold">{plan.price}</p>
+                {plan.originalPrice && (
+                  <p className="text-sm text-gray-500 line-through">{plan.originalPrice}</p>
+                )}
+              </div>
+              
+              <ul className="mb-6 space-y-2 text-left">
+                {plan.features.map((feature, idx) => (
+                  <li key={idx} className="text-sm">{feature}</li>
+                ))}
+              </ul>
+              
+              <button
+                onClick={() => plan.planType !== 'basic' ? handlePayment(plan.planType) : undefined}
+                disabled={plan.planType === 'basic' || (loading && selectedPlan === plan.planType)}
+                className={`w-full py-3 rounded-lg flex items-center justify-center gap-2 font-semibold transition-colors ${
+                  plan.planType === 'basic' 
+                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                    : plan.planType === 'yearly'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
+                    : isDarkMode 
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                } ${loading && selectedPlan === plan.planType ? 'opacity-50' : ''}`}
+              >
+                {loading && selectedPlan === plan.planType ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  plan.planType === 'basic' ? 'Current Plan' : 'Get Started'
+                )}
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </div>

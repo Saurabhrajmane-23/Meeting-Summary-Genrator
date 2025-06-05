@@ -26,6 +26,16 @@ const userSchema = new Schema(
       type: String,
       required: [true, "password is required"],
     },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null values while maintaining uniqueness
+    },
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
     refreshToken: {
       type: String,
     },
@@ -40,6 +50,12 @@ const userSchema = new Schema(
       enum: ["basic", "monthly", "yearly"],
       default: "basic",
     },
+    planStartedAt: {
+      type: Date,
+    },
+    planExpiresAt: {
+      type: Date,
+    },
     meetingCount: {
       type: Number,
       default: 0,
@@ -47,12 +63,6 @@ const userSchema = new Schema(
     lastReset: {
       type: Date,
       default: Date.now,
-    },
-    planStartedAt: {
-      type: Date,
-    },
-    planExpiresAt: {
-      type: Date,
     },
   },
   {

@@ -13,11 +13,13 @@ cron.schedule("0 0 * * *", async () => {
   });
 
   for (const user of expiredUsers) {
-    user.plan = "Basic";
+    user.plan = "basic";
     user.planStartedAt = null;
     user.planExpiresAt = null;
     user.meetingCount = 0;
     await user.save();
-    console.log(`Downgraded ${user.email} to Basic`);
+    console.log(`Downgraded ${user.email} to basic plan`);
   }
+
+  console.log(`Processed ${expiredUsers.length} expired plans`);
 });
