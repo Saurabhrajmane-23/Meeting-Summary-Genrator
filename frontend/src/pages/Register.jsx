@@ -120,7 +120,7 @@ function Register() {
 
   return (
     <div
-      className={`flex justify-center items-center min-h-screen font-[Courier_New] ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-gray-100 text-gray-900'} relative`}
+      className={`flex justify-center items-center min-h-screen font-[Arial] ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-gray-100 text-gray-900'} relative`}
       style={{
         backgroundImage: 'url("/images/image2.png")',
         backgroundSize: 'auto 100%',

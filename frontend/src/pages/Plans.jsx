@@ -148,7 +148,7 @@ const Plans = () => {
     },
     {
       name: "Monthly",
-      price: "$5/month",
+      price: "5$/month",
       features: [
         "✓ Up to 50 meeting summaries/month",
         "✓ Advanced AI summaries",
@@ -160,7 +160,7 @@ const Plans = () => {
     },
     {
       name: "Yearly",
-      price: "$50/year",
+      price: "50$/year",
       originalPrice: "$60/year",
       savings: "Save $10",
       features: [
@@ -187,7 +187,7 @@ const Plans = () => {
     }, [isDropdownOpen]);
 
   return (
-    <div className={`min-h-screen font-[Courier_New] ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-gray-100 text-gray-900'}`}>
+    <div className={`min-h-screen font-[Arial] ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-gray-100 text-gray-900'}`}>
       {/* Navigation Header */}
       <nav className={`${isDarkMode ? 'bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-gray-800' : 'bg-white'} shadow-lg sticky top-0 z-50`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -208,7 +208,7 @@ const Plans = () => {
                   {/* Plan Badge - lightning blue */}
                   <div className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
                     userData.plan === 'basic' 
-                      ? isDarkMode ? 'bg-gradient-to-r from-gray-800 to-gray-500 text-white' : 'bg-gradient-to-r from-gray-500 to-gray-200 text-black'
+                      ? isDarkMode ? 'bg-gradient-to-r from-gray-800 to-gray-500 text-white' : 'bg-gradient-to-r from-gray-300 to-gray-200 text-black'
                       : userData.plan === 'monthly'
                       ? isDarkMode ? 'bg-gradient-to-r from-purple-700 to-pink-700 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
                       : isDarkMode ? 'bg-gradient-to-r from-purple-700 to-pink-700 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
@@ -271,7 +271,7 @@ const Plans = () => {
                 {/* Enhanced Dropdown Menu */}
                 {isDropdownOpen && (
                   <div className={`absolute right-0 mt-2 w-48 ${
-                    isDarkMode ? 'bg-gray-900/95 backdrop-blur-sm border border-gray-800' : 'bg-white'
+                    isDarkMode ? 'bg-gray-900/30 backdrop-blur-sm border border-gray-800' : 'bg-white'
                   } rounded-lg shadow-2xl py-1`}>
                     {/* Theme toggle */}
                     <div className={`px-4 py-2 flex items-center justify-between ${
@@ -341,7 +341,7 @@ const Plans = () => {
       </div>
 
       <div className="max-w-7xl mx-auto text-center pt-20 px-4">
-        <h1 className={`text-5xl font-semibold font-[Courier_New]  mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+        <h1 className={`text-4xl font-[Arial]  mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
           Choose Your Plan
         </h1>
         <p className={`text-lg   mb-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>

@@ -24,7 +24,8 @@ function Dashboard() {
     username: '',
     email: '',
     avatar: '',
-    plan: 'basic' // Add plan to userData state
+    plan: 'basic',
+    meetingCount: 0 // Add meetingCount to state
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -47,7 +48,6 @@ function Dashboard() {
 
       if (response.data?.success) {
         setFiles(response.data.data);
-        // Set processed files state based on isProcessed flag
         const processed = {};
         response.data.data.forEach(file => {
           if (file.isProcessed) {
@@ -81,7 +81,8 @@ function Dashboard() {
           username: response.data.data.username,
           email: response.data.data.email,
           avatar: response.data.data.avatar,
-          plan: response.data.data.plan || 'basic' // Add plan data
+          plan: response.data.data.plan || 'basic',
+          meetingCount: response.data.data.meetingCount || 0 // Add meetingCount
         });
       }
     } catch (error) {
@@ -143,7 +144,6 @@ function Dashboard() {
         setUploadProgress(100);
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Add this: Fetch updated files list immediately
         await fetchUserFiles();
         
         setFile(null);
@@ -171,6 +171,7 @@ function Dashboard() {
   const handleProcess = async (fileId) => {
     try {
       setProcessingFileId(fileId);
+      
       const response = await axios.post(
         `http://localhost:8000/api/v2/files/process/${fileId}`, 
         null,
@@ -182,7 +183,6 @@ function Dashboard() {
       );
 
       if (response.data?.success) {
-        // Store both transcript and summary data in state
         setProcessedFiles(prev => ({
           ...prev,
           [fileId]: {
@@ -193,15 +193,27 @@ function Dashboard() {
           }
         }));
         
-        // Refresh files list
+        // Update meeting count immediately after processing
+        setUserData(prev => ({
+          ...prev,
+          meetingCount: prev.meetingCount + 1
+        }));
+        
         await fetchUserFiles();
+        
+        setTimeout(() => {
+          setProcessingFileId(null);
+        }, 3000);
         
         alert('File processed successfully! You can now download the transcript and summary.');
       }
     } catch (error) {
       console.error('Process error:', error);
+      
       if (error.response?.status === 469) {
         alert('Monthly processing limit exceeded. Please upgrade your plan to process more files.');
+      } else {
+        alert('Error processing file. Please try again.');
       }
     } finally {
       setProcessingFileId(null);
@@ -225,7 +237,6 @@ function Dashboard() {
       );
 
       if (response.data?.success) {
-        // Remove file from state
         setFiles(files.filter(file => file._id !== fileId));
       }
     } catch (error) {
@@ -261,7 +272,6 @@ function Dashboard() {
     downloadLink.click();
     document.body.removeChild(downloadLink);
 
-    // Clean up
     window.URL.revokeObjectURL(downloadUrl);
   };
 
@@ -334,7 +344,6 @@ function Dashboard() {
 
     let droppedFile;
     if (e.dataTransfer.items) {
-      // Use DataTransferItemList interface
       for (let i = 0; i < e.dataTransfer.items.length; i++) {
         if (e.dataTransfer.items[i].kind === 'file') {
           droppedFile = e.dataTransfer.items[i].getAsFile();
@@ -342,7 +351,6 @@ function Dashboard() {
         }
       }
     } else {
-      // Use DataTransfer interface
       droppedFile = e.dataTransfer.files[0];
     }
 
@@ -350,7 +358,6 @@ function Dashboard() {
       setFile(droppedFile);
       setError('');
       
-      // Create a new DataTransfer object
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(droppedFile);
       
@@ -389,9 +396,18 @@ function Dashboard() {
     }
   };
 
+  // Add this helper function to get plan limits
+  const getPlanLimit = (plan) => {
+    const limits = {
+      basic: 3,
+      monthly: 50,
+      yearly: 100000
+    };
+    return limits[plan] || 3;
+  };
+
   return (
-    <div className={`min-h-screen font-[Courier_New] ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-gray-100 text-gray-900'}`}>
-      {/* Navigation Header */}
+    <div className={`min-h-screen font-[Arial] ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-gray-100 text-gray-900'}`}>
       <nav className={`${isDarkMode ? 'bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-gray-800' : 'bg-white'} shadow-lg sticky top-0 z-50`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
@@ -401,15 +417,14 @@ function Dashboard() {
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <div className="flex items-center space-x-6">
-                  {/* User info */}
                   <div className="flex flex-col items-end">
                     <span className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
                       {userData.username}
                     </span>
                   </div>
                   
-                  {/* Plan Badge - updated with new gradient styling */}
-                  <div className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg transform transition-all duration-300 hover:scale-105 ${
+                  {/* Plan Badge without meeting count */}
+                  <div className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
                     userData.plan === 'basic' 
                       ? isDarkMode ? 'bg-gradient-to-r from-gray-800 to-gray-500 text-white' : 'bg-gradient-to-r from-gray-300 to-gray-200 text-black'
                       : userData.plan === 'monthly'
@@ -434,7 +449,6 @@ function Dashboard() {
                     </div>
                   )}
                   
-                  {/* Replace the existing dropdown button and svg with this new animated version */}
                   <button 
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="flex flex-col justify-center items-center w-6 h-6 focus:outline-none"
@@ -471,12 +485,10 @@ function Dashboard() {
                   </button>
                 </div>
                 
-                {/* Enhanced Dropdown Menu */}
                 {isDropdownOpen && (
                   <div className={`absolute right-0 mt-2 w-48 ${
-                    isDarkMode ? 'bg-gray-900/95 backdrop-blur-sm border border-gray-800' : 'bg-white'
+                    isDarkMode ? 'bg-gray-900/30 backdrop-blur-sm border border-gray-800' : 'bg-white'
                   } rounded-lg shadow-2xl py-1`}>
-                    {/* Theme toggle */}
                     <div className={`px-4 py-2 flex items-center justify-between ${
                       isDarkMode 
                         ? 'text-gray-300 hover:bg-gray-800' 
@@ -496,8 +508,18 @@ function Dashboard() {
                         />
                       </button>
                     </div>
+
+                    <button
+                      onClick={() => navigate('/plans')}
+                      className={`block w-full text-left px-4 py-2 text-sm ${
+                        isDarkMode 
+                          ? 'text-gray-300 hover:bg-gray-800' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      Get Pro
+                    </button>
                     
-                    {/* Logout button */}
                     <button
                       onClick={handleLogout}
                       className={`block w-full text-left px-4 py-2 text-sm ${
@@ -509,19 +531,8 @@ function Dashboard() {
                       Logout
                     </button>
 
-                    {/* payment button */}
-                    <button
-                      onClick={() => navigate('/plans')}
-                      className={`block w-full text-left px-4 py-2 text-sm ${
-                        isDarkMode 
-                          ? 'text-gray-300 hover:bg-gray-800' 
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      Get Pro
-                    </button>
+                    
 
-                    {/* Delete Account button */}
                     <button
                       onClick={handleDeleteAccount}
                       className={`block w-full text-left px-4 py-2 text-sm ${
@@ -532,7 +543,6 @@ function Dashboard() {
                     >
                       Delete Account
                     </button>
-
                   </div>
                 )}
               </div>
@@ -541,10 +551,8 @@ function Dashboard() {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          {/* Drag & Drop Zone */}
           <div
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
@@ -581,23 +589,26 @@ function Dashboard() {
                   strokeLinejoin="round"
                 />
               </svg>
-                <div className={`flex text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <label
-                    htmlFor="file-upload"
-                    className={`relative cursor-pointer rounded-sm font-medium ${isDarkMode ? 'text-[#1e90ff] hover:text-[#5141e1]' : 'text-indigo-600 hover:text-indigo-500'}`}
-                  >
-                    <span>Select a file</span>
-                    <input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      className="sr-only"
-                      accept="audio/*,video/*"
-                      onChange={handleFileSelect}
-                    />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
+              <div className={`flex text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-800'}`}>
+                <label
+                  htmlFor="file-upload"
+                  className={`relative cursor-pointer rounded-sm font-medium ${isDarkMode ? 'text-[#1e90ff] hover:text-[#5141e1]' : 'text-indigo-600 hover:text-indigo-500'}`}
+                >
+                  <span>Select a file</span>
+                  <input
+                    id="file-upload"
+                    name="file-upload"
+                    type="file"
+                    className="sr-only"
+                    accept="audio/*,video/*"
+                    onChange={handleFileSelect}
+                  />
+                </label>
+                <p className="pl-1">or drag and drop</p>
+              </div>
+              <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                Supports audio and video files
+              </p>
             </div>
 
             {file && (
@@ -606,7 +617,6 @@ function Dashboard() {
               </p>
             )}
             
-            {/* Description textarea */}
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -614,7 +624,7 @@ function Dashboard() {
               className={`w-full max-w-xs px-3 py-2 text-sm ${
                 isDarkMode 
                   ? 'bg-gray-900/50 backdrop-blur-sm text-gray-200 border-gray-700' 
-                  : 'bg-white text-gray-700 border-gray-300'
+                  : 'bg-white text-gray-900 border-gray-300 placeholder-gray-700'
               } border rounded-sm focus:outline-none focus:ring-2 focus:ring-[#1e90ff] focus:border-[#1e90ff]`}
               rows="2"
             />
@@ -627,7 +637,6 @@ function Dashboard() {
             )}
           </div>
 
-          {/* Upload Button and Progress */}
           <div className="mt-7 flex flex-col items-center">
             <button
               onClick={handleUpload}
@@ -655,7 +664,6 @@ function Dashboard() {
               )}
             </button>
 
-            {/* Enhanced Progress Bar */}
             {uploading && (
               <div className="mt-6 w-full max-w-md">
                 <div className="relative">
@@ -705,43 +713,57 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Files Table */}
-        {/* Files Table Header */}
         <div className="mt-5 flex justify-between items-center mb-4">
-          <h2 className={`text-lg font-semibold ${
-  isDarkMode ? 'text-gray-200' : 'text-gray-800'
-}`}>
-  Your Files
-</h2>
-  
-  <div className="relative">
-    <input
-      type="text"
-      placeholder="Search files..."
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      className={`w-64 px-4 py-1 rounded-md border ${
-        isDarkMode 
-          ? 'bg-gray-900/50 backdrop-blur-sm border-gray-700 text-gray-200 placeholder-gray-400' 
-          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-      } focus:outline-none focus:ring-2 focus:ring-[#1e90ff] focus:border-[#1e90ff]`}
-    />
-    <svg 
-      className={`absolute right-3 top-2.5 h-5 w-5 ${
-        isDarkMode ? 'text-gray-400' : 'text-gray-500'
-      }`}
-      xmlns="http://www.w3.org/2000/svg" 
-      viewBox="0 0 20 20" 
-      fill="currentColor"
-    >
-      <path 
-        fillRule="evenodd" 
-        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" 
-        clipRule="evenodd" 
-      />
-    </svg>
-  </div>
-</div>
+          <div className="flex items-center gap-4">
+            <h2 className={`text-lg font-semibold ${
+              isDarkMode ? 'text-gray-200' : 'text-gray-800'
+            }`}>
+              Your Files
+            </h2>
+            
+            {/* Meeting count display next to "Your Files" */}
+            <div className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-2 ${
+              isDarkMode 
+                ? 'bg-gray-800 text-gray-300' 
+                : 'bg-gray-200 text-gray-700'
+            }`}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+              <span>
+                {userData.meetingCount} / {userData.plan === 'yearly' ? 'Infinity' : getPlanLimit(userData.plan)} -   files processed
+              </span>
+            </div>
+          </div>
+          
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search files..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-64 px-4 py-1 rounded-md border ${
+                isDarkMode 
+                  ? 'bg-gray-900/50 backdrop-blur-sm border-gray-700 text-gray-400 placeholder-gray-400' 
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-600'
+              } focus:outline-none focus:ring-2 focus:ring-[#1e90ff] focus:border-[#1e90ff]`}
+            />
+            <svg 
+              className={`absolute right-3 top-2.5 h-5 w-5 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 20 20" 
+              fill="currentColor"
+            >
+              <path 
+                fillRule="evenodd" 
+                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" 
+                clipRule="evenodd" 
+              />
+            </svg>
+          </div>
+        </div>
 
         <div className="mt-5">
           {loading ? (
@@ -751,12 +773,12 @@ function Dashboard() {
             </div>
           ) : files.length === 0 ? (
             <div className={`${
-    isDarkMode ? 'bg-gray-900/50 backdrop-blur-sm border border-gray-800' : 'bg-white'
-  } shadow-md rounded-lg p-6 text-center`}>
-    <p className={`${
-      isDarkMode ? 'text-gray-400' : 'text-gray-500'
-    }`}>No files uploaded yet</p>
-  </div>
+              isDarkMode ? 'bg-gray-900/50 backdrop-blur-sm border border-gray-800' : 'bg-white'
+            } shadow-md rounded-lg p-6 text-center`}>
+              <p className={`${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>No files uploaded yet</p>
+            </div>
           ) : (
             <div className={`${isDarkMode ? 'bg-gray-900/50 backdrop-blur-sm border border-gray-800' : 'bg-white'} shadow-md overflow-hidden rounded-lg`}>
               <table className="min-w-full divide-y divide-gray-200">
@@ -819,77 +841,145 @@ function Dashboard() {
                           hour12: true
                         })}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                        <button
-                          onClick={() => handleProcess(file._id)}
-                          className={`p-2 rounded-full transform hover:scale-110 transition-all duration-200 ${
-                            isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-                          } ${
-                            processingFileId === file._id ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                          disabled={processingFileId === file._id}
-                          title="Process file"
-                        >
-                          {processingFileId === file._id ? (
-                            <svg className="animate-spin h-6 w-6 text-[#1e90ff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-                          ) : (
-                            <svg className="h-6 w-6 text-[#1e90ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          )}
-                        </button>
-                        
-                        {file.isProcessed && (
-                          <>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end space-x-2">
+                          {/* Process File Button */}
+                          <div className="relative group">
                             <button
-                              onClick={() => handleDownloadTranscript(file._id, file.fileName)}
-                              className={`p-2 rounded-full transform hover:scale-110 transition-all duration-200 ${
-                                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                              onClick={() => handleProcess(file._id)}
+                              disabled={processingFileId === file._id || file.isProcessed}
+                              className={`p-2 rounded-lg transition-all duration-200 ${
+                                processingFileId === file._id || file.isProcessed
+                                  ? 'cursor-not-allowed opacity-50'
+                                  : isDarkMode
+                                    ? 'hover:bg-gray-700 text-blue-400 hover:text-blue-300'
+                                    : 'hover:bg-blue-50 text-blue-600 hover:text-blue-700'
                               }`}
-                              title="Download transcript"
+                              title={file.isProcessed ? 'Already processed' : 'Process file'}
                             >
-                              <svg className="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                              </svg>
+                              {processingFileId === file._id ? (
+                                <svg className="animate-spin h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : file.isProcessed ? (
+                                <svg className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : (
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              )}
                             </button>
+                            
+                            {/* Tooltip */}
+                            <div className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 ${
+                              isDarkMode ? 'bg-gray-800 text-gray-200' : 'bg-gray-900 text-white'
+                            }`}>
+                              {file.isProcessed ? 'Already processed' : 'Process file'}
+                              <div className={`absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent ${
+                                isDarkMode ? 'border-t-gray-800' : 'border-t-gray-900'
+                              }`}></div>
+                            </div>
+                          </div>
 
-                            <button
-                              onClick={() => handleDownloadSummaryPDF(file._id, file.fileName)}
-                              className={`p-2 rounded-full transform hover:scale-110 transition-all duration-200 ${
-                                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-                              }`}
-                              title="Download summary PDF"
-                            >
-                              <svg className="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                              </svg>
-                            </button>
-                          </>
-                        )}
-
-                        <button
-                          onClick={() => handleDelete(file._id)}
-                          className={`p-2 rounded-full transform hover:scale-110 transition-all duration-200 ${
-                            isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-                          }`}
-                          disabled={deletingFileId === file._id}
-                          title="Delete file"
-                        >
-                          {deletingFileId === file._id ? (
-                            <svg className="animate-spin h-6 w-6 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-                          ) : (
-                            <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
+                          {/* Download Transcript Button */}
+                          {file.isProcessed && (
+                            <div className="relative group">
+                              <button
+                                onClick={() => handleDownloadTranscript(file._id, file.fileName)}
+                                className={`p-2 rounded-lg transition-all duration-200 ${
+                                  isDarkMode
+                                    ? 'hover:bg-gray-700 text-green-400 hover:text-green-300'
+                                    : 'hover:bg-green-50 text-green-600 hover:text-green-700'
+                                }`}
+                                title="Download transcript"
+                              >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </button>
+                              
+                              {/* Tooltip */}
+                              <div className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 ${
+                                isDarkMode ? 'bg-gray-800 text-gray-200' : 'bg-gray-900 text-white'
+                              }`}>
+                                Download transcript
+                                <div className={`absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent ${
+                                  isDarkMode ? 'border-t-gray-800' : 'border-t-gray-900'
+                                }`}></div>
+                              </div>
+                            </div>
                           )}
-                        </button>
+
+                          {/* Download Summary PDF Button */}
+                          {file.isProcessed && (
+                            <div className="relative group">
+                              <button
+                                onClick={() => handleDownloadSummaryPDF(file._id, file.fileName)}
+                                className={`p-2 rounded-lg transition-all duration-200 ${
+                                  isDarkMode
+                                    ? 'hover:bg-gray-700 text-purple-400 hover:text-purple-300'
+                                    : 'hover:bg-purple-50 text-purple-600 hover:text-purple-700'
+                                }`}
+                                title="Download summary PDF"
+                              >
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                </svg>
+                              </button>
+                              
+                              {/* Tooltip */}
+                              <div className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 ${
+                                isDarkMode ? 'bg-gray-800 text-gray-200' : 'bg-gray-900 text-white'
+                              }`}>
+                                Download summary PDF
+                                <div className={`absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent ${
+                                  isDarkMode ? 'border-t-gray-800' : 'border-t-gray-900'
+                                }`}></div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Delete File Button */}
+                          <div className="relative group">
+                            <button
+                              onClick={() => handleDelete(file._id)}
+                              disabled={deletingFileId === file._id}
+                              className={`p-2 rounded-lg transition-all duration-200 ${
+                                deletingFileId === file._id
+                                  ? 'cursor-not-allowed opacity-50'
+                                  : isDarkMode
+                                    ? 'hover:bg-red-900/20 text-red-400 hover:text-red-300'
+                                    : 'hover:bg-red-50 text-red-600 hover:text-red-700'
+                              }`}
+                              title="Delete file"
+                            >
+                              {deletingFileId === file._id ? (
+                                <svg className="animate-spin h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              ) : (
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              )}
+                            </button>
+                            
+                            {/* Tooltip */}
+                            <div className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 ${
+                              isDarkMode ? 'bg-gray-800 text-gray-200' : 'bg-gray-900 text-white'
+                            }`}>
+                              {deletingFileId === file._id ? 'Deleting...' : 'Delete file'}
+                              <div className={`absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent ${
+                                isDarkMode ? 'border-t-gray-800' : 'border-t-gray-900'
+                              }`}></div>
+                            </div>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   ))}
