@@ -3,7 +3,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-
 const Plans = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
@@ -12,6 +11,7 @@ const Plans = () => {
       username: '',
       email: '',
       avatar: '',
+      plan: 'basic' // Add plan to userData state
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -36,7 +36,8 @@ const Plans = () => {
         setUserData({
           username: response.data.data.username,
           email: response.data.data.email,
-          avatar: response.data.data.avatar
+          avatar: response.data.data.avatar,
+          plan: response.data.data.plan || 'basic' // Add plan data
         });
       }
     } catch (error) {
@@ -115,7 +116,7 @@ const Plans = () => {
           });
         },
         theme: {
-          color: '#291145',
+          color: '#1e90ff',
         },
       };
 
@@ -137,7 +138,7 @@ const Plans = () => {
   const plans = [
     {
       name: "Basic",
-      price: "Free",
+      price: "0$/month",
       features: [
         "✓ Up to 3 meeting summaries/month",
         "✓ Basic transcription",
@@ -186,34 +187,51 @@ const Plans = () => {
     }, [isDropdownOpen]);
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
+    <div className={`min-h-screen font-[Courier_New] ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-gray-100 text-gray-900'}`}>
       {/* Navigation Header */}
-      <nav className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg sticky top-0 z-50`}>
+      <nav className={`${isDarkMode ? 'bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-gray-800' : 'bg-white'} shadow-lg sticky top-0 z-50`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <h1 className={`text-2xl ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+            <h1 className={`text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
               
             </h1>
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <div className="flex items-center space-x-6">
-                  <span className={`text-2xl  ${isDarkMode ? 'text-white bg-gray-800' : 'text-black bg-white'}`}>
-                    {userData.username}
-                  </span>
+                  {/* User info */}
+                  <div className="flex flex-col items-end">
+                    <span className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                      {userData.username}
+                    </span>
+                  </div>
+                  
+                  {/* Plan Badge - lightning blue */}
+                  <div className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
+                    userData.plan === 'basic' 
+                      ? isDarkMode ? 'bg-gradient-to-r from-gray-800 to-gray-500 text-white' : 'bg-gradient-to-r from-gray-500 to-gray-200 text-black'
+                      : userData.plan === 'monthly'
+                      ? isDarkMode ? 'bg-gradient-to-r from-purple-700 to-pink-700 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                      : isDarkMode ? 'bg-gradient-to-r from-purple-700 to-pink-700 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                  }`}>
+                    {userData.plan === 'basic' ? 'Basic Plan' : 
+                     userData.plan === 'monthly' ? 'Pro Monthly' : 'Pro Yearly'}
+                  </div>
+                  
                   {userData.avatar ? (
                     <img
                       src={userData.avatar}
                       alt="User avatar"
-                      className="h-8 w-8 rounded-full"
+                      className={`h-8 w-8 rounded-full ${isDarkMode ? ' ring-2 ring-[#00BFFF]/50' : ' ring-2 ring-white ring-opacity-20'}`}
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
-                      <span className="text-white text-sm">
-                        {userData.username ? userData.username[0].toUpperCase() : 'U'}
+                    <div className={`h-8 w-8 rounded-full ${isDarkMode ? 'bg-[#00BFFF]' : 'bg-indigo-600'} flex items-center justify-center`}>
+                      <span className="text-white text-sm font-semibold">
+                        {userData.username ? userData.username[0].toUpperCase() : 'G'}
                       </span>
                     </div>
                   )}
-                  {/* Replace the existing dropdown button and svg with this new animated version */}
+                  
+                  {/* Enhanced hamburger button */}
                   <button 
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="flex flex-col justify-center items-center w-6 h-6 focus:outline-none"
@@ -221,7 +239,7 @@ const Plans = () => {
                     <div className="flex flex-col justify-between w-5 h-4">
                       <span 
                         className={`h-0.5 w-full transform transition-all duration-300 ease-in-out ${
-                          isDarkMode ? 'bg-white' : 'bg-gray-600'
+                          isDarkMode ? 'bg-gray-300' : 'bg-gray-600'
                         } ${
                           isDropdownOpen 
                             ? 'rotate-45 translate-y-2' 
@@ -230,7 +248,7 @@ const Plans = () => {
                       />
                       <span 
                         className={`h-0.5 w-full transform transition-all duration-300 ease-in-out ${
-                          isDarkMode ? 'bg-white' : 'bg-gray-600'
+                          isDarkMode ? 'bg-gray-300' : 'bg-gray-600'
                         } ${
                           isDropdownOpen 
                             ? 'opacity-0' 
@@ -239,7 +257,7 @@ const Plans = () => {
                       />
                       <span 
                         className={`h-0.5 w-full transform transition-all duration-300 ease-in-out ${
-                          isDarkMode ? 'bg-white' : 'bg-gray-600'
+                          isDarkMode ? 'bg-gray-300' : 'bg-gray-600'
                         } ${
                           isDropdownOpen 
                             ? '-rotate-45 -translate-y-1.5' 
@@ -250,27 +268,27 @@ const Plans = () => {
                   </button>
                 </div>
                 
-                {/* Dropdown Menu */}
+                {/* Enhanced Dropdown Menu */}
                 {isDropdownOpen && (
                   <div className={`absolute right-0 mt-2 w-48 ${
-                    isDarkMode ? 'bg-gray-800' : 'bg-white'
-                  } rounded-sm shadow-lg py-1`}>
+                    isDarkMode ? 'bg-gray-900/95 backdrop-blur-sm border border-gray-800' : 'bg-white'
+                  } rounded-lg shadow-2xl py-1`}>
                     {/* Theme toggle */}
                     <div className={`px-4 py-2 flex items-center justify-between ${
                       isDarkMode 
-                        ? 'text-gray-200 hover:bg-gray-700' 
+                        ? 'text-gray-300 hover:bg-gray-800' 
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}>
                       <span className="text-sm">Lights</span>
                       <button
                         onClick={toggleDarkMode}
                         className={`relative w-10 h-4 rounded-full transition-colors duration-200 ${
-                          isDarkMode ? 'bg-gray-600' : 'bg-blue-500'
+                          !isDarkMode ? 'bg-[#1e90ff]' : 'bg-gray-600'
                         }`}
                       >
                         <div
                           className={`absolute top-0 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ${
-                            isDarkMode ? 'translate-x-0.5' : 'translate-x-6'
+                            !isDarkMode ? 'translate-x-6' : 'translate-x-0'
                           }`}
                         />
                       </button>
@@ -281,7 +299,7 @@ const Plans = () => {
                       onClick={handleLogout}
                       className={`block w-full text-left px-4 py-2 text-sm ${
                         isDarkMode 
-                          ? 'text-gray-200 hover:bg-gray-700' 
+                          ? 'text-gray-300 hover:bg-gray-800' 
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
@@ -293,7 +311,7 @@ const Plans = () => {
                       onClick={handleDeleteAccount}
                       className={`block w-full text-left px-4 py-2 text-sm ${
                         isDarkMode 
-                          ? 'text-red-400 hover:bg-gray-700' 
+                          ? 'text-red-400 hover:bg-gray-800' 
                           : 'text-red-600 hover:bg-gray-100'
                       }`}
                     >
@@ -307,79 +325,137 @@ const Plans = () => {
           </div>
         </div>
       </nav>
+
       {/* Back Button */}
       <div className="fixed top-3 left-20 z-50">
         <button
           onClick={() => navigate('/dashboard')}
-          className={`px-4 py-2 font-medium transition ${
+          className={`px-4 py-2 font-medium   transition-all duration-200 rounded-lg ${
             isDarkMode
-              ? 'bg-gray-800 text-white border-white hover:bg-gray-700'
-              : 'bg-gray-100 text-gray-900 border-gray-600 hover:bg-gray-200'
+              ? 'bg-gray-900/80 backdrop-blur-sm text-gray-300 border border-gray-800 hover:bg-gray-800 hover:text-white'
+              : 'bg-gray-300 text-gray-900 hover:bg-gray-200'
           }`}
         >
           ← Dashboard
         </button>
       </div>
 
-      
+      <div className="max-w-7xl mx-auto text-center pt-20 px-4">
+        <h1 className={`text-5xl font-semibold font-[Courier_New]  mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          Choose Your Plan
+        </h1>
+        <p className={`text-lg   mb-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          Flexible pricing for every team and budget
+        </p>
 
-      <div className="max-w-6xl mx-auto text-center top-20 py-15">
-        <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
-        <p className="text-lg mb-12">Flexible pricing for every team and budget.</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="flex flex-wrap justify-center gap-8 lg:flex-nowrap">
           {plans.map((plan, index) => (
             <div
               key={index}
-              className={`rounded-2xl shadow-lg p-8 border relative ${
-                isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'
-              } ${plan.planType === 'yearly' ? 'ring-2 ring-blue-500' : ''}`}
+              onClick={() => setIsDropdownOpen(false)} // Add this line
+              className={`flex-1 max-w-sm rounded-2xl shadow-lg p-8 border relative transform transition-all duration-300 flex flex-col   ${
+                isDarkMode 
+                  ? 'bg-gray-900/50 backdrop-blur-sm border-gray-800' 
+                  : 'bg-white border-gray-200'
+              } ${plan.planType === 'yearly' 
+                ? isDarkMode 
+                  ? ' ring-2 ring-[#1E90FF]/50 shadow-[#1E90FF]/20' 
+                  : ' ring-2 ring-[#1E90FF]' 
+                : ''
+              } ${
+                userData.plan === plan.planType 
+                  ? isDarkMode 
+                    ? ' ring-2 ring-[#00BFFF]/50 shadow-[#00BFFF]/20' 
+                    : ' ring-2 ring-green-500' 
+                  : ''
+              }`}
             >
               {plan.savings && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold   ${
+                    isDarkMode 
+                      ? 'bg-[#1E90FF] text-white' 
+                      : 'bg-green-500 text-white'
+                  }`}>
                     {plan.savings}
                   </span>
                 </div>
               )}
               
-              <h2 className="text-2xl font-semibold mb-2">{plan.name}</h2>
+              {/* Current plan indicator */}
+              {userData.plan === plan.planType && (
+                <div className="absolute -top-3 right-4">
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold   ${
+                    isDarkMode 
+                      ? 'bg-[#1e90ff] text-white'
+                      : 'bg-green-500 text-white'
+                  }`}>
+                    Current Plan
+                  </span>
+                </div>
+              )}
+              
+              <h2 className={`text-2xl font-semibold   mb-2 ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>
+                {plan.name}
+              </h2>
               <div className="mb-4">
-                <p className="text-xl font-bold">{plan.price}</p>
+                <p className={`text-xl font-bold   ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  {plan.price}
+                </p>
                 {plan.originalPrice && (
-                  <p className="text-sm text-gray-500 line-through">{plan.originalPrice}</p>
+                  <p className={`text-sm line-through   ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                  }`}>
+                    {plan.originalPrice}
+                  </p>
                 )}
               </div>
               
-              <ul className="mb-6 space-y-2 text-left">
+              <ul className={`mb-6 space-y-2 text-left flex-grow   ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-700'
+              }`}>
                 {plan.features.map((feature, idx) => (
-                  <li key={idx} className="text-sm">{feature}</li>
+                  <li key={idx} className="text-sm  ">{feature}</li>
                 ))}
               </ul>
               
               <button
-                onClick={() => plan.planType !== 'basic' ? handlePayment(plan.planType) : undefined}
-                disabled={plan.planType === 'basic' || (loading && selectedPlan === plan.planType)}
-                className={`w-full py-3 rounded-lg flex items-center justify-center gap-2 font-semibold transition-colors ${
-                  plan.planType === 'basic' 
-                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                onClick={() => plan.planType !== 'basic' && userData.plan !== plan.planType ? handlePayment(plan.planType) : undefined}
+                disabled={plan.planType === 'basic' || userData.plan === plan.planType || (loading && selectedPlan === plan.planType)}
+                className={`w-full py-3 rounded-lg flex items-center justify-center gap-2 font-semibold   transition-all duration-300 mt-auto ${
+                  userData.plan === plan.planType
+                    ? isDarkMode 
+                      ? 'bg-[#1e90ff] text-white cursor-default'
+                      : 'bg-green-500 text-white cursor-default'
+                    : plan.planType === 'basic' 
+                    ? isDarkMode 
+                      ? 'bg-gray-800 border border-gray-700 text-gray-500 cursor-not-allowed' 
+                      : 'bg-gray-400 text-white cursor-not-allowed'
                     : plan.planType === 'yearly'
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
+                    ? isDarkMode 
+                      ? 'bg-[#1e90ff] text-white hover:bg-[#5141e1]' 
+                      : 'bg-[#1e90ff] text-white hover:bg-[#5141e1]'
                     : isDarkMode 
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                    ? 'bg-[#1e90ff] text-white hover:bg-[#5141e1]' 
+                    : 'bg-[#1e90ff] text-white hover:bg-[#5141e1]'
                 } ${loading && selectedPlan === plan.planType ? 'opacity-50' : ''}`}
               >
                 {loading && selectedPlan === plan.planType ? (
                   <>
-                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                     </svg>
-                    Processing...
+                    <span className=" ">Processing...</span>
                   </>
+                ) : userData.plan === plan.planType ? (
+                  '✓ Active Plan'
                 ) : (
-                  plan.planType === 'basic' ? 'Current Plan' : 'Get Started'
+                  plan.planType === 'basic' ? 'Downgrade' : 'Get Started'
                 )}
               </button>
             </div>

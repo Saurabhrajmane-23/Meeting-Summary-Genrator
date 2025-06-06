@@ -96,7 +96,7 @@ function Register() {
 
   const handleVerify = async (e) => {
     e.preventDefault();
-    setIsVerifying(true); // Start verification loading
+    setIsVerifying(true);
     
     try {
       const res = await axios.post("http://localhost:8000/api/v2/users/verify-email", {
@@ -114,23 +114,22 @@ function Register() {
       console.log(err);
       alert("Invalid or expired verification code.");
     } finally {
-      setIsVerifying(false); // Stop verification loading
+      setIsVerifying(false);
     }
   };
 
   return (
     <div
-      className={`flex justify-center items-center min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}
+      className={`flex justify-center items-center min-h-screen font-[Courier_New] ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-gray-100 text-gray-900'} relative`}
       style={{
         backgroundImage: 'url("/images/image2.png")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center bottom',
-        backgroundRepeat: 'no-repeat',
-        position: 'relative',
-        overflow: 'hidden'
+        backgroundSize: 'auto 100%',
+        backgroundPosition: 'center center',
+        backgroundRepeat: 'no-repeat'
       }}
     >
-      <div className={`absolute inset-0 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} opacity-0`}></div>
+      {/* Add a dark overlay for dark mode to make text readable */}
+      <div className={`absolute inset-0 bg-transparent`}></div>
 
       <div className="flex justify-center items-center w-full relative z-10">
         <div className={`w-1/2 p-12 pl-45 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -146,7 +145,7 @@ function Register() {
 
         <div className="w-1/2 flex justify-center">
           <div className={`fixed p-2.5 top-4 right-4 flex items-center gap-3 border ${
-            isDarkMode ? 'border-white' : 'border-gray-600'
+            isDarkMode ? 'border-gray-700' : 'border-gray-400'
           }`}>
             <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Lights
@@ -154,32 +153,32 @@ function Register() {
             <button
               onClick={toggleDarkMode}
               className={`relative w-10 h-4 rounded-full transition-colors duration-200 ${
-                isDarkMode ? 'bg-gray-600' : 'bg-blue-500'
+                !isDarkMode ? 'bg-[#1e90ff]' : 'bg-gray-600'
               }`}
             >
               <div
                 className={`absolute top-0 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ${
-                  isDarkMode ? 'translate-x-0.5' : 'translate-x-6'
+                  !isDarkMode ? 'translate-x-6' : 'translate-x-0'
                 }`}
               />
             </button>
           </div>
 
           {!isVerificationStep ? (
-            <form onSubmit={handleSubmit} className={`p-6 w-96 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
+            <form onSubmit={handleSubmit} className={`p-6 w-96 ${isDarkMode ? 'bg-gray-900/20 backdrop-blur-sm border border-gray-700 text-white' : 'bg-white border border-gray-200 text-gray-900'} rounded-2xl shadow-lg`}>
               <h2 className="text-2xl font-semibold text-center mb-4">Create Your Account</h2>
               
               {/* Error Message */}
               {error && (
-                <div className={`mb-4 p-3 ${isDarkMode ? 'bg-gray-600 text-white' : 'bg-gray-300 text-gray-900'} rounded-md`}>
-                  {error}
+                <div className={`${isDarkMode ? 'bg-red-900/50 border-red-800 text-red-400' : 'bg-red-50 border-red-200 text-red-700'} border px-4 py-3 rounded relative mb-4`} role="alert">
+                  <span className="block sm:inline">{error}</span>
                 </div>
               )}
               
               {/* Success Message */}
               {success && (
-                <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-                  {success}
+                <div className={`${isDarkMode ? 'bg-green-900/50 border-green-800 text-green-400' : 'bg-green-50 border-green-200 text-green-700'} border px-4 py-3 rounded relative mb-4`} role="alert">
+                  <span className="block sm:inline">{success}</span>
                 </div>
               )}
 
@@ -190,8 +189,8 @@ function Register() {
                 disabled={isGoogleLoading || isLoading}
                 className={`w-full p-3 mb-4 rounded-lg border-2 flex items-center justify-center gap-3 transition-all duration-200 ${
                   isDarkMode 
-                    ? 'border-gray-600 bg-gray-800 text-white hover:bg-gray-700' 
-                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    ? 'border-gray-700 bg-gray-900/50 text-white hover:bg-gray-800' 
+                    : 'border-gray-400 bg-white text-gray-700 hover:bg-gray-50'
                 } ${(isGoogleLoading || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {isGoogleLoading ? (
@@ -213,10 +212,10 @@ function Register() {
               {/* Divider */}
               <div className="relative mb-4">
                 <div className="absolute inset-0 flex items-center">
-                  <div className={`w-full border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}></div>
+                  <div className={`w-full border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-400'}`}></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className={`px-2 ${isDarkMode ? 'bg-gray-900 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                  <span className={`px-2 ${isDarkMode ? 'bg-gray-900/50 text-gray-400' : 'bg-white text-gray-500'}`}>
                     Or create with email
                   </span>
                 </div>
@@ -230,7 +229,11 @@ function Register() {
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
-                    className={`w-full p-2 rounded border ${isDarkMode ? 'bg-gray-800 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                    className={`w-full p-2 rounded border ${
+                      isDarkMode 
+                        ? 'text-white border-gray-700 focus:border-[#1e90ff] bg-gray-900/50' 
+                        : 'text-gray-900 border-gray-400 focus:border-[#1e90ff] bg-white'
+                    } transition-all duration-200`}
                     required
                     disabled={isLoading}
                   />
@@ -243,7 +246,11 @@ function Register() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full p-2 rounded border ${isDarkMode ? 'bg-gray-800 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                    className={`w-full p-2 rounded border ${
+                      isDarkMode 
+                        ? 'text-white border-gray-700 focus:border-[#1e90ff] bg-gray-900/50' 
+                        : 'text-gray-900 border-gray-400 focus:border-[#1e90ff] bg-white'
+                    } transition-all duration-200`}
                     required
                     disabled={isLoading}
                   />
@@ -255,7 +262,11 @@ function Register() {
                     type="file"
                     name="avatar"
                     onChange={handleChange}
-                    className={`w-full p-2 rounded border ${isDarkMode ? 'bg-gray-800 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                    className={`w-full p-2 rounded border ${
+                      isDarkMode 
+                        ? 'text-white border-gray-700 focus:border-[#1e90ff] bg-gray-900/50' 
+                        : 'text-gray-900 border-gray-400 focus:border-[#1e90ff] bg-white'
+                    } transition-all duration-200`}
                     accept="image/*"
                     disabled={isLoading}
                   />
@@ -268,7 +279,11 @@ function Register() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`w-full p-2 rounded border ${isDarkMode ? 'bg-gray-800 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                    className={`w-full p-2 rounded border ${
+                      isDarkMode 
+                        ? 'text-white border-gray-700 focus:border-[#1e90ff] bg-gray-900/50' 
+                        : 'text-gray-900 border-gray-400 focus:border-[#1e90ff] bg-white'
+                    } transition-all duration-200`}
                     required
                     disabled={isLoading}
                   />
@@ -278,32 +293,18 @@ function Register() {
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className={`w-full p-2 mt-6 rounded-lg flex items-center justify-center gap-2 text-white transition-all duration-200 ${
-                  isLoading 
-                    ? 'bg-gray-500 cursor-not-allowed' 
-                    : isDarkMode 
-                      ? 'bg-blue-600 hover:bg-blue-700' 
-                      : 'bg-blue-500 hover:bg-blue-600'
-                }`}
+                className={`w-full p-2 mt-6 rounded-lg transition ${
+                  isDarkMode ? 'bg-[#1e90ff] hover:bg-[#5141e1]' : 'bg-[#1e90ff] hover:bg-[#5141e1]'
+                } text-white`}
               >
-                {isLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Creating Account...
-                  </>
-                ) : (
-                  'Register'
-                )}
+                {isLoading ? 'Creating Account...' : 'Register'}
               </button>
 
               <div className="text-center mt-4">
-                <p>Already have an account?</p>
+                <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Already have an account?</p>
                 <button 
                   type="button" 
-                  className="text-blue-400 hover:underline disabled:text-gray-500 disabled:cursor-not-allowed" 
+                  className={`${isDarkMode ? 'text-[#1e90ff] hover:text-[#5141e1]' : 'text-[#1e90ff] hover:text-[#5141e1]'} hover:underline`}
                   onClick={() => navigate('/login')}
                   disabled={isLoading}
                 >
@@ -312,15 +313,21 @@ function Register() {
               </div>
             </form>
           ) : (
-            <form onSubmit={handleVerify} className={`p-4 -mt-21 w-96 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
+            <form onSubmit={handleVerify} className={`p-6 w-96 ${isDarkMode ? 'bg-gray-900/20 backdrop-blur-sm border border-gray-700 text-white' : 'bg-white border border-gray-200 text-gray-900'} rounded-2xl shadow-lg`}>
               <h2 className="text-2xl font-semibold text-center mb-4">Verify Your Email</h2>
-              <p className="text-sm mb-2 text-center">I've sent a verification code to <strong>{emailToVerify}</strong></p>
+              <p className={`text-sm mb-2 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                I've sent a verification code to <strong>{emailToVerify}</strong>
+              </p>
 
               <input
                 type="text"
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value)}
-                className={`w-full p-2 rounded border mt-2 mb-4 ${isDarkMode ? 'bg-gray-800 text-white border-gray-600' : 'bg-white text-gray-900 border-gray-300'}`}
+                className={`w-full p-2 rounded border mt-2 mb-4 ${
+                  isDarkMode 
+                    ? 'text-white border-gray-700 focus:border-[#1e90ff] bg-gray-900/50' 
+                    : 'text-gray-900 border-gray-400 focus:border-[#1e90ff] bg-white'
+                } transition-all duration-200`}
                 placeholder="Enter verification code"
                 required
                 disabled={isVerifying}
@@ -329,25 +336,11 @@ function Register() {
               <button 
                 type="submit" 
                 disabled={isVerifying}
-                className={`w-full p-2 rounded-lg flex items-center justify-center gap-2 text-white transition-all duration-200 ${
-                  isVerifying 
-                    ? 'bg-gray-500 cursor-not-allowed' 
-                    : isDarkMode 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-green-500 hover:bg-green-600'
-                }`}
+                className={`w-full p-2 rounded-lg transition ${
+                  isDarkMode ? 'bg-[#1e90ff] hover:bg-[#5141e1]' : 'bg-[#1e90ff] hover:bg-[#5141e1]'
+                } text-white`}
               >
-                {isVerifying ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Verifying...
-                  </>
-                ) : (
-                  'Verify Email'
-                )}
+                {isVerifying ? 'Verifying...' : 'Verify Email'}
               </button>
             </form>
           )}

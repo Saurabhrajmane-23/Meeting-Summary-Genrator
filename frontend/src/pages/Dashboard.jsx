@@ -23,7 +23,8 @@ function Dashboard() {
   const [userData, setUserData] = useState({
     username: '',
     email: '',
-    avatar: ''
+    avatar: '',
+    plan: 'basic' // Add plan to userData state
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -79,7 +80,8 @@ function Dashboard() {
         setUserData({
           username: response.data.data.username,
           email: response.data.data.email,
-          avatar: response.data.data.avatar
+          avatar: response.data.data.avatar,
+          plan: response.data.data.plan || 'basic' // Add plan data
         });
       }
     } catch (error) {
@@ -388,33 +390,50 @@ function Dashboard() {
   };
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
+    <div className={`min-h-screen font-[Courier_New] ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-gray-100 text-gray-900'}`}>
       {/* Navigation Header */}
-      <nav className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg sticky top-0 z-50`}>
+      <nav className={`${isDarkMode ? 'bg-[#0a0a0a]/95 backdrop-blur-sm border-b border-gray-800' : 'bg-white'} shadow-lg sticky top-0 z-50`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <h1 className={`text-2xl ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-              Summary Dashboard
+            <h1 className={`text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+              Dashboard
             </h1>
             <div className="flex items-center space-x-4">
               <div className="relative">
                 <div className="flex items-center space-x-6">
-                  <span className={`text-2xl  ${isDarkMode ? 'text-white bg-gray-800' : 'text-black bg-white'}`}>
-                    {userData.username}
-                  </span>
+                  {/* User info */}
+                  <div className="flex flex-col items-end">
+                    <span className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                      {userData.username}
+                    </span>
+                  </div>
+                  
+                  {/* Plan Badge - updated with new gradient styling */}
+                  <div className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg transform transition-all duration-300 hover:scale-105 ${
+                    userData.plan === 'basic' 
+                      ? isDarkMode ? 'bg-gradient-to-r from-gray-800 to-gray-500 text-white' : 'bg-gradient-to-r from-gray-300 to-gray-200 text-black'
+                      : userData.plan === 'monthly'
+                      ? isDarkMode ? 'bg-gradient-to-r from-purple-700 to-pink-700 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                      : isDarkMode ? 'bg-gradient-to-r from-purple-700 to-pink-700 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                  }`}>
+                    {userData.plan === 'basic' ? 'Basic Plan' : 
+                     userData.plan === 'monthly' ? 'Pro Monthly' : 'Pro Yearly'}
+                  </div>
+                  
                   {userData.avatar ? (
                     <img
                       src={userData.avatar}
                       alt="User avatar"
-                      className="h-8 w-8 rounded-full"
+                      className={`h-8 w-8 rounded-full ${isDarkMode ? 'ring-2 ring-[#00BFFF]/50' : 'ring-2 ring-white ring-opacity-20'}`}
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center">
-                      <span className="text-white text-sm">
-                        {userData.username ? userData.username[0].toUpperCase() : 'U'}
+                    <div className={`h-8 w-8 rounded-full ${isDarkMode ? 'bg-[#00BFFF]' : 'bg-indigo-600'} flex items-center justify-center`}>
+                      <span className="text-white text-sm font-semibold">
+                        {userData.username ? userData.username[0].toUpperCase() : 'G'}
                       </span>
                     </div>
                   )}
+                  
                   {/* Replace the existing dropdown button and svg with this new animated version */}
                   <button 
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -423,7 +442,7 @@ function Dashboard() {
                     <div className="flex flex-col justify-between w-5 h-4">
                       <span 
                         className={`h-0.5 w-full transform transition-all duration-300 ease-in-out ${
-                          isDarkMode ? 'bg-white' : 'bg-gray-600'
+                          isDarkMode ? 'bg-gray-300' : 'bg-gray-600'
                         } ${
                           isDropdownOpen 
                             ? 'rotate-45 translate-y-2' 
@@ -432,7 +451,7 @@ function Dashboard() {
                       />
                       <span 
                         className={`h-0.5 w-full transform transition-all duration-300 ease-in-out ${
-                          isDarkMode ? 'bg-white' : 'bg-gray-600'
+                          isDarkMode ? 'bg-gray-300' : 'bg-gray-600'
                         } ${
                           isDropdownOpen 
                             ? 'opacity-0' 
@@ -441,7 +460,7 @@ function Dashboard() {
                       />
                       <span 
                         className={`h-0.5 w-full transform transition-all duration-300 ease-in-out ${
-                          isDarkMode ? 'bg-white' : 'bg-gray-600'
+                          isDarkMode ? 'bg-gray-300' : 'bg-gray-600'
                         } ${
                           isDropdownOpen 
                             ? '-rotate-45 -translate-y-1.5' 
@@ -452,27 +471,27 @@ function Dashboard() {
                   </button>
                 </div>
                 
-                {/* Dropdown Menu */}
+                {/* Enhanced Dropdown Menu */}
                 {isDropdownOpen && (
                   <div className={`absolute right-0 mt-2 w-48 ${
-                    isDarkMode ? 'bg-gray-800' : 'bg-white'
-                  } rounded-sm shadow-lg py-1`}>
+                    isDarkMode ? 'bg-gray-900/95 backdrop-blur-sm border border-gray-800' : 'bg-white'
+                  } rounded-lg shadow-2xl py-1`}>
                     {/* Theme toggle */}
                     <div className={`px-4 py-2 flex items-center justify-between ${
                       isDarkMode 
-                        ? 'text-gray-200 hover:bg-gray-700' 
+                        ? 'text-gray-300 hover:bg-gray-800' 
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}>
                       <span className="text-sm">Lights</span>
                       <button
                         onClick={toggleDarkMode}
                         className={`relative w-10 h-4 rounded-full transition-colors duration-200 ${
-                          isDarkMode ? 'bg-gray-600' : 'bg-blue-500'
+                          !isDarkMode ? 'bg-[#1e90ff]' : 'bg-gray-600'
                         }`}
                       >
                         <div
                           className={`absolute top-0 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ${
-                            isDarkMode ? 'translate-x-0.5' : 'translate-x-6'
+                            !isDarkMode ? 'translate-x-6' : 'translate-x-0'
                           }`}
                         />
                       </button>
@@ -483,7 +502,7 @@ function Dashboard() {
                       onClick={handleLogout}
                       className={`block w-full text-left px-4 py-2 text-sm ${
                         isDarkMode 
-                          ? 'text-gray-200 hover:bg-gray-700' 
+                          ? 'text-gray-300 hover:bg-gray-800' 
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
@@ -495,7 +514,7 @@ function Dashboard() {
                       onClick={() => navigate('/plans')}
                       className={`block w-full text-left px-4 py-2 text-sm ${
                         isDarkMode 
-                          ? 'text-gray-200 hover:bg-gray-700' 
+                          ? 'text-gray-300 hover:bg-gray-800' 
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
@@ -507,7 +526,7 @@ function Dashboard() {
                       onClick={handleDeleteAccount}
                       className={`block w-full text-left px-4 py-2 text-sm ${
                         isDarkMode 
-                          ? 'text-red-400 hover:bg-gray-700' 
+                          ? 'text-red-400 hover:bg-gray-800' 
                           : 'text-red-600 hover:bg-gray-100'
                       }`}
                     >
@@ -534,7 +553,7 @@ function Dashboard() {
             className={`border-4 border-dashed pointer-events-auto ${
               isDarkMode ? 'border-gray-700' : 'border-gray-400'
             } ${
-              isDragging ? 'bg-neutral-500 border-gray-900' : ''
+              isDragging ? isDarkMode ? 'bg-gray-800/50 border-[#1e90ff]' : 'bg-neutral-500 border-gray-900' : ''
             } rounded-lg h-75 flex flex-col items-center justify-center space-y-4 transition-colors duration-200`}
           >
             <input
@@ -562,10 +581,10 @@ function Dashboard() {
                   strokeLinejoin="round"
                 />
               </svg>
-                <div className="flex text-sm text-gray-600">
+                <div className={`flex text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   <label
                     htmlFor="file-upload"
-                    className="relative cursor-pointer rounded-sm font-medium text-indigo-600 hover:text-indigo-500"
+                    className={`relative cursor-pointer rounded-sm font-medium ${isDarkMode ? 'text-[#1e90ff] hover:text-[#5141e1]' : 'text-indigo-600 hover:text-indigo-500'}`}
                   >
                     <span>Select a file</span>
                     <input
@@ -594,9 +613,9 @@ function Dashboard() {
               placeholder="Add meeting description (optional)"
               className={`w-full max-w-xs px-3 py-2 text-sm ${
                 isDarkMode 
-                  ? 'bg-gray-800 text-gray-200 border-gray-700' 
+                  ? 'bg-gray-900/50 backdrop-blur-sm text-gray-200 border-gray-700' 
                   : 'bg-white text-gray-700 border-gray-300'
-              } border rounded-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+              } border rounded-sm focus:outline-none focus:ring-2 focus:ring-[#1e90ff] focus:border-[#1e90ff]`}
               rows="2"
             />
             
@@ -614,8 +633,8 @@ function Dashboard() {
               onClick={handleUpload}
               disabled={uploading || !file}
               className={`relative inline-flex items-center px-6 py-2 border border-transparent text-base font-medium rounded-md text-white
-                ${uploading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}
-                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+                ${uploading ? 'bg-[#1e90ff]/50 cursor-not-allowed' : isDarkMode ? 'bg-[#1e90ff] hover:bg-[#5141e1]' : 'bg-[#1e90ff] hover:bg-[#5141e1]'}
+                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1e90ff]
                 transition-all duration-200 w-48`}
             >
               {uploading ? (
@@ -642,7 +661,7 @@ function Dashboard() {
                 <div className="relative">
                   <div className="flex mb-3 items-center justify-between">
                     <div className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#1e90ff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -650,7 +669,7 @@ function Dashboard() {
                         Uploading {file?.name}
                       </span>
                     </div>
-                    <span className={`text-sm font-semibold ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                    <span className={`text-sm font-semibold ${isDarkMode ? 'text-[#1e90ff]' : 'text-[#1e90ff]'}`}>
                       {uploadProgress}%
                     </span>
                   </div>
@@ -661,7 +680,7 @@ function Dashboard() {
                         style={{ width: `${uploadProgress}%` }}
                         className={`h-2 rounded-full ${
                           uploadProgress < 100 
-                            ? 'bg-indigo-500' 
+                            ? 'bg-[#1e90ff]' 
                             : 'bg-green-500'
                         } transition-all duration-300 ease-out`}
                       />
@@ -703,9 +722,9 @@ function Dashboard() {
       onChange={(e) => setSearchQuery(e.target.value)}
       className={`w-64 px-4 py-1 rounded-md border ${
         isDarkMode 
-          ? 'bg-gray-800 border-gray-700 text-gray-200 placeholder-gray-400' 
+          ? 'bg-gray-900/50 backdrop-blur-sm border-gray-700 text-gray-200 placeholder-gray-400' 
           : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-      } focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+      } focus:outline-none focus:ring-2 focus:ring-[#1e90ff] focus:border-[#1e90ff]`}
     />
     <svg 
       className={`absolute right-3 top-2.5 h-5 w-5 ${
@@ -727,21 +746,21 @@ function Dashboard() {
         <div className="mt-5">
           {loading ? (
             <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e90ff] mx-auto"></div>
               <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading files...</p>
             </div>
           ) : files.length === 0 ? (
             <div className={`${
-    isDarkMode ? 'bg-gray-800' : 'bg-white'
+    isDarkMode ? 'bg-gray-900/50 backdrop-blur-sm border border-gray-800' : 'bg-white'
   } shadow-md rounded-lg p-6 text-center`}>
     <p className={`${
       isDarkMode ? 'text-gray-400' : 'text-gray-500'
     }`}>No files uploaded yet</p>
   </div>
           ) : (
-            <div className="bg-white shadow-md overflow-hidden">
+            <div className={`${isDarkMode ? 'bg-gray-900/50 backdrop-blur-sm border border-gray-800' : 'bg-white'} shadow-md overflow-hidden rounded-lg`}>
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className={isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}>
+                <thead className={isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50'}>
                   <tr>
                     <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                       isDarkMode ? 'text-gray-200' : 'text-gray-700'
@@ -774,7 +793,7 @@ function Dashboard() {
                   isDarkMode ? 'divide-gray-700 text-gray-300' : 'divide-gray-200'
                 }`}>
                   {filteredFiles.map((file) => (
-                    <tr key={file._id} className={isDarkMode ? 'bg-gray-800' : 'bg-white'}>
+                    <tr key={file._id} className={isDarkMode ? 'bg-gray-900/30' : 'bg-white'}>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${
                         isDarkMode ? 'text-gray-300' : 'text-gray-900'
                       }`}>
@@ -803,7 +822,7 @@ function Dashboard() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                         <button
                           onClick={() => handleProcess(file._id)}
-                          className={`p-2 rounded-full hover:bg-gray-100 transform hover:scale-110 transition-all duration-200 ${
+                          className={`p-2 rounded-full transform hover:scale-110 transition-all duration-200 ${
                             isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
                           } ${
                             processingFileId === file._id ? 'opacity-50 cursor-not-allowed' : ''
@@ -812,12 +831,12 @@ function Dashboard() {
                           title="Process file"
                         >
                           {processingFileId === file._id ? (
-                            <svg className="animate-spin h-6 w-6 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <svg className="animate-spin h-6 w-6 text-[#1e90ff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
                           ) : (
-                            <svg className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="h-6 w-6 text-[#1e90ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>

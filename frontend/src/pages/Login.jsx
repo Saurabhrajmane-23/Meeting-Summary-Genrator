@@ -92,17 +92,16 @@ const Login = () => {
 
   return (
     <div 
-      className={`flex justify-center items-center min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}
+      className={`flex justify-center items-center min-h-screen font-[Courier_New] ${isDarkMode ? 'bg-[#0a0a0a] text-white' : 'bg-gray-100 text-gray-900'} relative`}
       style={{
         backgroundImage: 'url("/images/login2.png")',
         backgroundSize: 'auto 100%',
-        backgroundPosition: 'center center', 
-        backgroundRepeat: 'no-repeat',
-        position: 'relative',
-        overflow: 'hidden'
+        backgroundPosition: 'center center',
+        backgroundRepeat: 'no-repeat'
       }}
     >
-      <div className={`absolute inset-0 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} opacity-0`}></div>
+      {/* Add a dark overlay for dark mode to make text readable */}
+      <div className={`absolute inset-0 bg-transparent`}></div>
       
       <div className="flex justify-center items-center w-full relative z-10">
         <div className={`w-1/2 p-12 pl-45 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -118,7 +117,7 @@ const Login = () => {
 
         <div className="w-1/2 flex justify-center">
           <div className={`fixed p-2.5 top-4 right-4 flex items-center gap-3 border ${
-            isDarkMode ? 'border-white' : 'border-gray-600'
+            isDarkMode ? 'border-gray-700' : 'border-gray-400'
           }`}>
             <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               Lights
@@ -126,22 +125,22 @@ const Login = () => {
             <button
               onClick={toggleDarkMode}
               className={`relative w-10 h-4 rounded-full transition-colors duration-200 ${
-                isDarkMode ? 'bg-gray-600' : 'bg-blue-500'
+                !isDarkMode ? 'bg-[#1e90ff]' : 'bg-gray-600'
               }`}
             >
               <div
                 className={`absolute top-0 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-200 ${
-                  isDarkMode ? 'translate-x-0.5' : 'translate-x-6'
+                  !isDarkMode ? 'translate-x-6' : 'translate-x-0'
                 }`}
               />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className={`p-6 w-96 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
+          <form onSubmit={handleSubmit} className={`p-6 w-96 ${isDarkMode ? 'bg-gray-900/20 backdrop-blur-sm border border-gray-700 text-white' : 'bg-white border border-gray-200 text-gray-900'} rounded-2xl shadow-lg`}>
             <h2 className="text-2xl font-semibold text-center mb-4">LogIn</h2>
             
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+              <div className={`${isDarkMode ? 'bg-red-900/50 border-red-800 text-red-400' : 'bg-red-50 border-red-200 text-red-700'} border px-4 py-3 rounded relative mb-4`} role="alert">
                 <span className="block sm:inline">{error}</span>
               </div>
             )}
@@ -153,8 +152,8 @@ const Login = () => {
               disabled={isGoogleLoading}
               className={`w-full p-3 mb-4 rounded-lg border-2 flex items-center justify-center gap-3 transition-all duration-200 ${
                 isDarkMode 
-                  ? 'border-gray-600 bg-gray-800 text-white hover:bg-gray-700' 
-                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  ? 'border-gray-700 bg-gray-900/50 text-white hover:bg-gray-800' 
+                  : 'border-gray-400 bg-white text-gray-700 hover:bg-gray-50'
               } ${isGoogleLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {isGoogleLoading ? (
@@ -176,14 +175,19 @@ const Login = () => {
             {/* Divider */}
             <div className="relative mb-4">
               <div className="absolute inset-0 flex items-center">
-                <div className={`w-full border-t ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}></div>
+                <div className={`w-full border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-400'}`}></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className={`px-2 ${isDarkMode ? 'bg-gray-900 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                <span className={`px-2 ${isDarkMode ? 'bg-gray-900/50 text-gray-400' : 'bg-white text-gray-500'}`}>
                   Or continue with email
                 </span>
               </div>
             </div>
+
+            {/* Instruction text */}
+            <p className={`text-sm text-center mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Enter either your email or username 
+            </p>
             
             <div className="space-y-4">
               <div>
@@ -195,8 +199,8 @@ const Login = () => {
                   onChange={handleChange}
                   className={`w-full p-2 rounded border ${
                     isDarkMode 
-                      ? 'text-white border-gray-600 focus:border-blue-500 bg-gray-800' 
-                      : 'text-gray-900 border-gray-300 focus:border-blue-500 bg-white'
+                      ? 'text-white border-gray-700 focus:border-[#1e90ff] bg-gray-900/50' 
+                      : 'text-gray-900 border-gray-400 focus:border-[#1e90ff] bg-white'
                   } transition-all duration-200`}
                 />
               </div>
@@ -210,8 +214,8 @@ const Login = () => {
                   onChange={handleChange}
                   className={`w-full p-2 rounded border ${
                     isDarkMode 
-                      ? 'text-white border-gray-600 focus:border-blue-500 bg-gray-800' 
-                      : 'text-gray-900 border-gray-300 focus:border-blue-500 bg-white'
+                      ? 'text-white border-gray-700 focus:border-[#1e90ff] bg-gray-900/50' 
+                      : 'text-gray-900 border-gray-400 focus:border-[#1e90ff] bg-white'
                   } transition-all duration-200`}
                 />
               </div>
@@ -225,8 +229,8 @@ const Login = () => {
                   onChange={handleChange}
                   className={`w-full p-2 rounded border ${
                     isDarkMode 
-                      ? 'text-white border-gray-600 focus:border-blue-500 bg-gray-800' 
-                      : 'text-gray-900 border-gray-300 focus:border-blue-500 bg-white'
+                      ? 'text-white border-gray-700 focus:border-[#1e90ff] bg-gray-900/50' 
+                      : 'text-gray-900 border-gray-400 focus:border-[#1e90ff] bg-white'
                   } transition-all duration-200`}
                   required
                 />
@@ -236,17 +240,17 @@ const Login = () => {
             <button
               type="submit"
               className={`w-full p-2 mt-6 rounded-lg transition ${
-                isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
+                isDarkMode ? 'bg-[#1e90ff] hover:bg-[#5141e1]' : 'bg-[#1e90ff] hover:bg-[#5141e1]'
               } text-white`}
             >
               Log in
             </button>
 
             <div className="text-center mt-4">
-              <p>Don't have an account?</p>
+              <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Don't have an account?</p>
               <button
                 type="button"
-                className="text-blue-400 hover:underline"
+                className={`${isDarkMode ? 'text-[#1e90ff] hover:text-[#5141e1]' : 'text-[#1e90ff] hover:text-[#5141e1]'} hover:underline`}
                 onClick={() => navigate('/')}
               >
                 Sign up
