@@ -14,8 +14,9 @@ const useCloudinaryUpload = () => {
         throw new Error("No authentication token found. Please login again.");
       }
 
+      // Use production URL instead of localhost
       const response = await axios.get(
-        "http://localhost:8000/api/v2/cloudinary/upload-config",
+        "https://meeting-summary-genrator.onrender.com/api/v2/cloudinary/upload-config",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -125,8 +126,9 @@ const useCloudinaryUpload = () => {
         throw new Error("No authentication token found. Please login again.");
       }
 
+      // Also update this URL to production
       const response = await axios.post(
-        "http://localhost:8000/api/v2/files/create-record",
+        "https://meeting-summary-genrator.onrender.com/api/v2/files/create-record",
         fileData,
         {
           headers: {
@@ -137,6 +139,7 @@ const useCloudinaryUpload = () => {
       );
       return response.data.data;
     } catch (error) {
+      console.error("Error creating file record:", error);
       if (error.response?.status === 401) {
         localStorage.removeItem("accessToken");
         localStorage.removeRemoveItem("refreshToken");
