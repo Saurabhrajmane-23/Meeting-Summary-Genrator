@@ -3,8 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import {
   uploadOnCloudinary,
-  downloadFromCloudinary,
   deleteFromCloudinary,
+  getAudioUrlFromVideo, // Import the helper function instead
 } from "../utils/cloudinary.js";
 import { File } from "../models/file.model.js";
 import fs from "fs";
@@ -13,9 +13,65 @@ import { transcribeAudioFile } from "../utils/assembly.js";
 import { generateSummaryPDF } from "../utils/pdfGenerator.js";
 import { generateMeetingSummary } from "../utils/gemini.js";
 
+// Update the helper function to use the imported one from cloudinary.js
+const transformVideoUrlToAudio = (videoUrl, publicId) => {
+  // Use the helper function from cloudinary.js for consistency
+  return getAudioUrlFromVideo(videoUrl);
+};
+
+// New endpoint for creating file record after direct Cloudinary upload
+const createFileRecord = asyncHandler(async (req, res) => {
+  try {
+    const {
+      fileName,
+      fileType,
+      cloudinaryUrl,
+      cloudinaryPublicId,
+      duration,
+      fileSize,
+      description,
+    } = req.body;
+
+    // Validate required fields
+    if (!fileName || !fileType || !cloudinaryUrl || !cloudinaryPublicId) {
+      throw new ApiError(400, "Missing required file information");
+    }
+
+    // Validate file type
+    const supportedTypes = ["audio", "video"];
+    if (!supportedTypes.includes(fileType)) {
+      throw new ApiError(
+        400,
+        "Invalid file type. Only audio and video files are supported"
+      );
+    }
+
+    // Create database entry
+    const fileDoc = await File.create({
+      fileName: fileName,
+      fileType: fileType,
+      cloudinaryUrl: cloudinaryUrl,
+      cloudinaryPublicId: cloudinaryPublicId,
+      duration: duration || 0,
+      fileSize: fileSize || 0,
+      owner: req.user._id,
+      description: description || "",
+    });
+
+    // Return success response with file document
+    return res
+      .status(201)
+      .json(new ApiResponse(201, fileDoc, "File record created successfully"));
+  } catch (error) {
+    console.error("File record creation error:", error);
+    throw new ApiError(500, error?.message || "Error creating file record");
+  }
+});
+
+// Update the existing uploadFile function to handle fallback scenario
 const uploadFile = asyncHandler(async (req, res) => {
   try {
-    // Check if file exists
+    // Check if file exists (fallback for non-direct uploads)
     if (!req.file) {
       throw new ApiError(400, "No file provided");
     }
@@ -53,7 +109,7 @@ const uploadFile = asyncHandler(async (req, res) => {
       cloudinaryPublicId: uploadedFile.public_id,
       duration: uploadedFile.duration || 0,
       fileSize: file.size,
-      owner: req.user._id, // This requires auth middleware
+      owner: req.user._id,
       description: req.body.description || "",
     });
 
@@ -87,22 +143,28 @@ const processAudio = asyncHandler(async (req, res) => {
       throw new ApiError(404, "File not found");
     }
 
-    // Generate a unique filename
-    const localFileName = `${file._id}_${Date.now()}${path.extname(
-      file.fileName
-    )}`;
+    // Check if file belongs to user
+    if (file.owner.toString() !== req.user._id.toString()) {
+      throw new ApiError(403, "Unauthorized access");
+    }
 
-    // Download file from Cloudinary and extract audio if it's a video
-    const localFilePath = await downloadFromCloudinary(
-      file.cloudinaryUrl,
-      localFileName,
-      file.fileType
+    console.log(
+      "Processing file directly from Cloudinary URL:",
+      file.cloudinaryUrl
     );
 
-    console.log("File downloaded to:", localFilePath);
+    // For video files, we need to get the audio-only URL from Cloudinary
+    let audioUrl = file.cloudinaryUrl;
+    if (file.fileType === "video") {
+      // Transform video URL to audio format for processing
+      audioUrl = transformVideoUrlToAudio(
+        file.cloudinaryUrl,
+        file.cloudinaryPublicId
+      );
+    }
 
-    // Start transcription process
-    const transcript = await transcribeAudioFile(localFilePath);
+    // Start transcription process directly with Cloudinary URL
+    const transcript = await transcribeAudioFile(audioUrl);
 
     // Generate AI summary after transcription
     const summary = await generateMeetingSummary(transcript.text);
@@ -132,11 +194,6 @@ const processAudio = asyncHandler(async (req, res) => {
     const user = req.user;
     user.meetingCount += 1;
     await user.save();
-
-    // Clean up downloaded file only after transcription is complete
-    if (fs.existsSync(localFilePath)) {
-      fs.unlinkSync(localFilePath);
-    }
 
     return res.status(200).json(
       new ApiResponse(
@@ -229,8 +286,17 @@ const transcribeAudio = asyncHandler(async (req, res) => {
       throw new ApiError(403, "Unauthorized access");
     }
 
-    // Send to AssemblyAI for transcription
-    const transcript = await transcribeAudioFile(file.cloudinaryUrl);
+    // Use Cloudinary URL directly for transcription
+    let audioUrl = file.cloudinaryUrl;
+    if (file.fileType === "video") {
+      audioUrl = transformVideoUrlToAudio(
+        file.cloudinaryUrl,
+        file.cloudinaryPublicId
+      );
+    }
+
+    // Send to AssemblyAI for transcription using direct URL
+    const transcript = await transcribeAudioFile(audioUrl);
 
     // Update file in database with transcript data
     const updatedFile = await File.findByIdAndUpdate(
@@ -245,6 +311,7 @@ const transcribeAudio = asyncHandler(async (req, res) => {
             start: u.start,
             end: u.end,
           })),
+          isProcessed: true,
         },
       },
       { new: true }
@@ -263,7 +330,7 @@ const transcribeAudio = asyncHandler(async (req, res) => {
     );
   } catch (error) {
     console.error("Transcription error:", error);
-    throw new ApiError(500, error?.message || "Error transcribing audio");
+    throw new ApiError(500, error?.message || "Error transcribing audio file");
   }
 });
 
@@ -387,6 +454,7 @@ const getFileProcessingPercentage = asyncHandler(async (req, res) => {
 
 export {
   uploadFile,
+  createFileRecord,
   processAudio,
   getAllFiles,
   deleteFile,

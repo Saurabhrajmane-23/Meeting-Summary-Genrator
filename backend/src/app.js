@@ -44,10 +44,12 @@ app.use(cookieParser());
 import userRouter from "./routes/user.route.js";
 import fileRouter from "./routes/file.route.js";
 import paymentRouter from "./routes/payment.route.js";
+import cloudinaryRoutes from "./routes/cloudinary.routes.js";
 
 //routes decleration
 app.use("/api/v2/users", userRouter);
 app.use("/api/v2/files", fileRouter);
 app.use("/api/v2/payments", paymentRouter);
+app.use("/api/v2/cloudinary", cloudinaryRoutes);
 
 export default app;

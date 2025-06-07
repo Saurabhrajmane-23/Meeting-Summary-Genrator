@@ -1,10 +1,10 @@
 // task : add process loading bar.
 
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useTheme } from '../context/ThemeContext';
+import useCloudinaryUpload from '../hooks/useCloudinaryUpload';
 
 function Dashboard() {
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -25,11 +25,18 @@ function Dashboard() {
     email: '',
     avatar: '',
     plan: 'basic',
-    meetingCount: 0 // Add meetingCount to state
+    meetingCount: 0
   });
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const {
+    uploadToCloudinary,
+    createFileRecord,
+    error: cloudinaryError,
+    setError: setCloudinaryError,
+  } = useCloudinaryUpload();
 
   const handleFileSelect = (event) => {
     const selectedFile = event.target.files[0];
@@ -82,7 +89,7 @@ function Dashboard() {
           email: response.data.data.email,
           avatar: response.data.data.avatar,
           plan: response.data.data.plan || 'basic',
-          meetingCount: response.data.data.meetingCount || 0 // Add meetingCount
+          meetingCount: response.data.data.meetingCount || 0
         });
       }
     } catch (error) {
@@ -115,50 +122,49 @@ function Dashboard() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('description', description);
-
     try {
       setUploading(true);
       setUploadProgress(0);
-      const response = await axios.post('http://localhost:8000/api/v2/files/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.min(
-            Math.round((progressEvent.loaded * 100) / progressEvent.total),
-            99
-          );
-          setUploadProgress(percentCompleted);
-        },
-        timeout: 300000,
-        validateStatus: function (status) {
-          return status >= 200 && status < 300;
-        },
+      setError('');
+      setCloudinaryError('');
+
+      // Step 1: Upload directly to Cloudinary
+      const cloudinaryResult = await uploadToCloudinary(
+        file,
+        (progress) => {
+          setUploadProgress(progress);
+        }
+      );
+
+      // Step 2: Create file record in database
+      const fileType = file.type.split('/')[0];
+      await createFileRecord({
+        fileName: file.name,
+        fileType: fileType,
+        cloudinaryUrl: cloudinaryResult.url,
+        cloudinaryPublicId: cloudinaryResult.publicId,
+        duration: cloudinaryResult.duration || 0,
+        fileSize: cloudinaryResult.bytes || file.size,
+        description: description,
       });
 
-      if (response.data?.success) {
-        setUploadProgress(100);
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        await fetchUserFiles();
-        
-        setFile(null);
-        setDescription('');
-        setError('');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      } else {
-        throw new Error(response.data?.message || 'Upload failed');
+      // Success
+      setUploadProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await fetchUserFiles();
+      
+      setFile(null);
+      setDescription('');
+      setError('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
+
     } catch (error) {
-      console.error('Upload error:', error.response || error);
+      console.error('Upload error:', error);
       setError(
-        error.response?.data?.message || 
+        cloudinaryError || 
         error.message || 
         'Error uploading file. Please try again.'
       );
@@ -192,7 +198,7 @@ function Dashboard() {
             aiSummary: response.data.data.aiSummary
           }
         }));
-        
+
         // Update meeting count immediately after processing
         setUserData(prev => ({
           ...prev,
@@ -396,7 +402,7 @@ function Dashboard() {
     }
   };
 
-  // Add this helper function to get plan limits
+  // Helper function to get plan limits
   const getPlanLimit = (plan) => {
     const limits = {
       basic: 3,
@@ -530,8 +536,6 @@ function Dashboard() {
                     >
                       Logout
                     </button>
-
-                    
 
                     <button
                       onClick={handleDeleteAccount}
@@ -731,7 +735,7 @@ function Dashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               </svg>
               <span>
-                {userData.meetingCount} / {userData.plan === 'yearly' ? 'Infinity' : getPlanLimit(userData.plan)} -   files processed
+                {userData.meetingCount} / {userData.plan === 'yearly' ? 'Infinity' : getPlanLimit(userData.plan)} - files processed
               </span>
             </div>
           </div>
@@ -815,7 +819,7 @@ function Dashboard() {
                   isDarkMode ? 'divide-gray-700 text-gray-300' : 'divide-gray-200'
                 }`}>
                   {filteredFiles.map((file) => (
-                    <tr key={file._id} className={isDarkMode ? 'bg-gray-900/30' : 'bg-white'}>
+                    <tr key={file._id} className={isDarkMode ? 'bg-gray-900/10' : 'bg-white'}>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${
                         isDarkMode ? 'text-gray-300' : 'text-gray-900'
                       }`}>

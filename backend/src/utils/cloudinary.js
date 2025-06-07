@@ -1,13 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-import http from "http";
-import https from "https";
-import path from "path";
-import ffmpeg from "fluent-ffmpeg";
-import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
-
-// Set ffmpeg path
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 // Configuration
 cloudinary.config({
@@ -15,6 +7,12 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+// Add a helper function for URL transformations
+const getAudioUrlFromVideo = (videoUrl) => {
+  // Transform video URL to audio format for processing
+  return videoUrl.replace("/upload/", "/upload/f_mp3,q_auto/");
+};
 
 const uploadOnCloudinary = async (localFilePath, resourceType = "auto") => {
   try {
@@ -101,83 +99,6 @@ const uploadOnCloudinary = async (localFilePath, resourceType = "auto") => {
   }
 };
 
-const extractAudioFromVideo = async (videoPath, outputPath) => {
-  return new Promise((resolve, reject) => {
-    ffmpeg(videoPath)
-      .toFormat("mp3")
-      .on("end", () => resolve(outputPath))
-      .on("error", (err) => reject(err))
-      .save(outputPath);
-  });
-};
-
-const downloadFromCloudinary = async (
-  cloudinaryUrl,
-  localFileName,
-  fileType
-) => {
-  try {
-    const tempDir = "./public/temp";
-
-    // Create temp directory if it doesn't exist
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-
-    const downloadPath = path.join(tempDir, localFileName);
-
-    // Determine which protocol to use
-    const client = cloudinaryUrl.startsWith("https:") ? https : http;
-
-    // Download the file
-    await new Promise((resolve, reject) => {
-      client
-        .get(cloudinaryUrl, (response) => {
-          // Handle redirects
-          if (response.statusCode === 301 || response.statusCode === 302) {
-            const newUrl = response.headers.location;
-            console.log("Redirecting to:", newUrl);
-            // Recursively call with new URL
-            downloadFromCloudinary(newUrl, localFileName, fileType)
-              .then(resolve)
-              .catch(reject);
-            return;
-          }
-
-          if (response.statusCode !== 200) {
-            reject(new Error(`Failed to download: ${response.statusCode}`));
-            return;
-          }
-
-          const writeStream = fs.createWriteStream(downloadPath);
-          response.pipe(writeStream);
-
-          writeStream.on("finish", () => resolve());
-          writeStream.on("error", (err) => {
-            fs.unlinkSync(downloadPath);
-            reject(err);
-          });
-        })
-        .on("error", reject);
-    });
-
-    // If it's a video file, extract audio
-    if (fileType === "video") {
-      const audioPath = path.join(tempDir, `audio_${localFileName}.mp3`);
-      await extractAudioFromVideo(downloadPath, audioPath);
-
-      // Clean up video file
-      fs.unlinkSync(downloadPath);
-      return audioPath;
-    }
-
-    return downloadPath;
-  } catch (error) {
-    console.error("Download/Convert from Cloudinary failed:", error);
-    throw error;
-  }
-};
-
 const deleteFromCloudinary = async (publicId, resourceType = "auto") => {
   try {
     // Remove any file extension from publicId if present
@@ -223,5 +144,5 @@ const deleteFromCloudinary = async (publicId, resourceType = "auto") => {
   }
 };
 
-// Update the export
-export { uploadOnCloudinary, downloadFromCloudinary, deleteFromCloudinary };
+// Export the new helper function too
+export { uploadOnCloudinary, deleteFromCloudinary, getAudioUrlFromVideo };
