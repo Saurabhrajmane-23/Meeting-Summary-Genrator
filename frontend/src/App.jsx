@@ -15,23 +15,25 @@ function App() {
   return (
     <ThemeProvider>
     <Router>
-      <Routes>
-        <Route path="/" element={<Register />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/auth/success" element={<AuthSuccess />} />
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<Register />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth/success" element={<AuthSuccess />} />
 
-        {/* protected route */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/plans" element={
-          <ProtectedRoute>
-            <Plans />
-          </ProtectedRoute>
-        } />
-      </Routes>
+          {/* protected route */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/plans" element={
+            <ProtectedRoute>
+              <Plans />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </div>
     </Router>
     </ThemeProvider>
   );
