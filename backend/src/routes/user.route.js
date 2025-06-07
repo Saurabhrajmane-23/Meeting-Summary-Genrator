@@ -32,7 +32,8 @@ router.route("/create-payment").post(verifyJWT, createPaymentOrder);
 router.route("/auth/google").get(googleAuth);
 router.route("/auth/google/callback").get(
   passport.authenticate("google", {
-    failureRedirect: "http://localhost:5173/login?error=authentication_failed",
+    failureRedirect:
+      "https://quillai0.netlify.app/login?error=authentication_failed",
     session: true,
   }),
   googleCallback
