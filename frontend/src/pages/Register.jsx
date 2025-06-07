@@ -134,7 +134,7 @@ function Register() {
       {/* Desktop Layout (hidden on mobile) */}
       <div className="hidden lg:flex justify-center items-center w-full relative z-10">
         <div className={`w-1/2 p-12 pl-45 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-          <h1 className="text-3xl font-bold mb-4">MeetingSummary AI</h1>
+          <h1 className="text-3xl font-bold mb-4">Quill AI</h1>
           <h2 className="text-2xl mb-6">Welcome to the future of meeting management</h2>
           <div className="space-y-4">
             <p className="text-lg">✓ Instant AI-powered meeting summaries</p>
@@ -373,7 +373,7 @@ function Register() {
 
         {/* Mobile Header */}
         <div className={`text-center mb-8 mt-12 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-          <h1 className="text-2xl font-bold mb-2">MeetingSummary AI</h1>
+          <h1 className="text-2xl font-bold mb-2">Quill AI</h1>
           <h2 className="text-lg mb-4">Welcome to the future of meeting management</h2>
           <div className="space-y-2 text-sm">
             <p>✓ AI-powered meeting summaries</p>
