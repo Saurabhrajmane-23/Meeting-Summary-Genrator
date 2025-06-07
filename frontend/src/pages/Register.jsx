@@ -27,7 +27,7 @@ function Register() {
   const handleGoogleRegister = () => {
     setIsGoogleLoading(true);
     // Redirect to backend Google OAuth route
-    window.location.href = 'http://localhost:8000/api/v2/users/auth/google';
+    window.location.href = 'https://meeting-summary-genrator.onrender.com/api/v2/users/auth/google';
   };
 
   // Handle Google OAuth callback
@@ -65,7 +65,7 @@ function Register() {
     formDataToSend.append('password', formData.password);
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/v2/users/register",
+        "https://meeting-summary-genrator.onrender.com/api/v2/users/register",
         formDataToSend,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
@@ -99,7 +99,7 @@ function Register() {
     setIsVerifying(true);
     
     try {
-      const res = await axios.post("http://localhost:8000/api/v2/users/verify-email", {
+      const res = await axios.post("https://meeting-summary-genrator.onrender.com/api/v2/users/verify-email", {
         email: emailToVerify,
         code: verificationCode
       });
