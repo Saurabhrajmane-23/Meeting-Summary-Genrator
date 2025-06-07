@@ -786,30 +786,30 @@ function Dashboard() {
           ) : (
             <div className={`${isDarkMode ? 'bg-gray-900/50 backdrop-blur-sm border border-gray-800' : 'bg-white'} shadow-md overflow-hidden rounded-lg`}>
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className={isDarkMode ? 'bg-gray-800/50' : 'bg-gray-400'}>
+                <thead className={isDarkMode ? 'bg-gray-800/50' : 'bg-gray-300'}>
                   <tr>
                     <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
                     }`}>
                       File Name
                     </th>
                     <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
                     }`}>
                       Description
                     </th>
                     <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
                     }`}>
                       Size
                     </th>
                     <th scope="col" className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
                     }`}>
                       Uploaded At
                     </th>
                     <th scope="col" className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                      isDarkMode ? 'text-gray-200' : 'text-gray-800'
                     }`}>
                       Actions
                     </th>
