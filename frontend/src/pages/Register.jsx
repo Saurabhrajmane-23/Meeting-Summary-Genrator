@@ -27,7 +27,7 @@ function Register() {
   const handleGoogleRegister = () => {
     setIsGoogleLoading(true);
     // Redirect to backend Google OAuth route
-    window.location.href = 'https://meeting-summary-genrator.onrender.com/api/v2/users/auth/google';
+    window.location.href = 'http://localhost:8000/api/v2/users/auth/google';
   };
 
   // Handle Google OAuth callback
@@ -65,7 +65,7 @@ function Register() {
     formDataToSend.append('password', formData.password);
     try {
       const response = await axios.post(
-        "https://meeting-summary-genrator.onrender.com/api/v2/users/register",
+        "http://localhost:8000/api/v2/users/register",
         formDataToSend,
         { headers: { 'Content-Type': 'multipart/form-data' } }
       );
@@ -99,7 +99,7 @@ function Register() {
     setIsVerifying(true);
     
     try {
-      const res = await axios.post("https://meeting-summary-genrator.onrender.com/api/v2/users/verify-email", {
+      const res = await axios.post("http://localhost:8000/api/v2/users/verify-email", {
         email: emailToVerify,
         code: verificationCode
       });
@@ -351,7 +351,7 @@ function Register() {
       {/* Mobile Layout (visible only on mobile) */}
       <div className="lg:hidden flex flex-col justify-center items-center w-full relative z-10 px-4 py-8">
         {/* Mobile Theme Toggle */}
-        <div className={`absolute top-4 right-4 flex items-center gap-3 border ${
+        <div className={`absolute top-4 right-4 flex items-center gap-3 border rounded-lg ${
           isDarkMode ? 'border-gray-700' : 'border-gray-400'
         } p-2 rounded-lg`}>
           <span className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>

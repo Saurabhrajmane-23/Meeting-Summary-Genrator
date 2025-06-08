@@ -20,7 +20,7 @@ const Login = () => {
   const handleGoogleLogin = () => {
     setIsGoogleLoading(true);
     // Redirect to backend Google OAuth route
-    window.location.href = 'https://meeting-summary-genrator.onrender.com/api/v2/users/auth/google';
+    window.location.href = 'http://localhost:8000/api/v2/users/auth/google';
   };
 
   // Check for error in URL params
@@ -70,7 +70,7 @@ const Login = () => {
     formDataToSend.append('password', formData.password);
 
     try {
-      const response = await axios.post("https://meeting-summary-genrator.onrender.com/api/v2/users/login",
+      const response = await axios.post("http://localhost:8000/api/v2/users/login",
          formDataToSend,
          {headers: { 'Content-Type': 'application/json' }}
        );
@@ -117,7 +117,7 @@ const Login = () => {
         </div>
 
         <div className="w-1/2 flex justify-center">
-          <div className={`fixed p-2.5 top-4 right-4 flex items-center gap-3 border ${
+          <div className={`fixed p-2.5 top-4 right-4 flex items-center gap-3 border rounded-lg ${
             isDarkMode ? 'border-gray-700' : 'border-gray-400'
           }`}>
             <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -252,7 +252,7 @@ const Login = () => {
               <button
                 type="button"
                 className={`${isDarkMode ? 'text-[#1e90ff] hover:text-[#5141e1]' : 'text-[#1e90ff] hover:text-[#5141e1]'} hover:underline`}
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/register')}
               >
                 Sign up
               </button>

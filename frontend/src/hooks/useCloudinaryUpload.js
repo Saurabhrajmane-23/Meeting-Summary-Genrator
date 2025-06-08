@@ -16,7 +16,7 @@ const useCloudinaryUpload = () => {
 
       // Use production URL instead of localhost
       const response = await axios.get(
-        "https://meeting-summary-genrator.onrender.com/api/v2/cloudinary/upload-config",
+        "http://localhost:8000/api/v2/cloudinary/upload-config",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -128,7 +128,7 @@ const useCloudinaryUpload = () => {
 
       // Also update this URL to production
       const response = await axios.post(
-        "https://meeting-summary-genrator.onrender.com/api/v2/files/create-record",
+        "http://localhost:8000/api/v2/files/create-record",
         fileData,
         {
           headers: {

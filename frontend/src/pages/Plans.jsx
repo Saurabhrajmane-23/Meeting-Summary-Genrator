@@ -26,7 +26,7 @@ const Plans = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get('https://meeting-summary-genrator.onrender.com/api/v2/users/profile', {
+      const response = await axios.get('http://localhost:8000/api/v2/users/profile', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -51,7 +51,7 @@ const Plans = () => {
     }
 
     try {
-      const response = await axios.delete('https://meeting-summary-genrator.onrender.com/api/v2/users/delete-account', {
+      const response = await axios.delete('http://localhost:8000/api/v2/users/delete-account', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -77,7 +77,7 @@ const Plans = () => {
 
     try {
       const response = await axios.post(
-        'https://meeting-summary-genrator.onrender.com/api/v2/users/create-payment',
+        'http://localhost:8000/api/v2/users/create-payment',
         { planType },
         {
           headers: {
@@ -97,7 +97,7 @@ const Plans = () => {
         order_id: orderId,
         handler: function (response) {
           // Send response to backend to verify & update user
-          axios.post('https://meeting-summary-genrator.onrender.com/api/v2/payments/verify-payment', {
+          axios.post('http://localhost:8000/api/v2/payments/verify-payment', {
             razorpay_payment_id: response.razorpay_payment_id,
             razorpay_order_id: response.razorpay_order_id,
             razorpay_signature: response.razorpay_signature,
