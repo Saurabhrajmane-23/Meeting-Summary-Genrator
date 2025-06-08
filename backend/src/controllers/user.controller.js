@@ -406,7 +406,7 @@ const googleCallback = asyncHandler(async (req, res) => {
     if (!req.user) {
       console.log("No user found in callback");
       return res.redirect(
-        "http://localhost:5173/login?error=authentication_failed"
+        "https://quillai0.netlify.app/login?error=authentication_failed"
       );
     }
 
@@ -434,11 +434,11 @@ const googleCallback = asyncHandler(async (req, res) => {
     res.cookie("refreshToken", refreshToken, cookieOptions);
 
     res.redirect(
-      `http://localhost:5173/auth/success?token=${accessToken}`
+      `https://quillai0.netlify.app/auth/success?token=${accessToken}`
     );
   } catch (error) {
     console.error("Google callback error:", error);
-    res.redirect("http://localhost:5173/login?error=server_error");
+    res.redirect("https://quillai0.netlify.app/login?error=server_error");
   }
 });
 

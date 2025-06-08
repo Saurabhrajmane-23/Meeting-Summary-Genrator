@@ -47,7 +47,7 @@ function Dashboard() {
   const fetchUserFiles = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:8000/api/v2/files', {
+      const response = await axios.get('https://meeting-summary-genrator.onrender.com/api/v2/files', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -77,7 +77,7 @@ function Dashboard() {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/v2/users/profile', {
+      const response = await axios.get('https://meeting-summary-genrator.onrender.com/api/v2/users/profile', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
@@ -179,7 +179,7 @@ function Dashboard() {
       setProcessingFileId(fileId);
       
       const response = await axios.post(
-        `http://localhost:8000/api/v2/files/process/${fileId}`, 
+        `https://meeting-summary-genrator.onrender.com/api/v2/files/process/${fileId}`, 
         null,
         {
           headers: {
@@ -234,7 +234,7 @@ function Dashboard() {
     try {
       setDeletingFileId(fileId);
       const response = await axios.delete(
-        `http://localhost:8000/api/v2/files/delete/${fileId}`,
+        `https://meeting-summary-genrator.onrender.com/api/v2/files/delete/${fileId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -284,7 +284,7 @@ function Dashboard() {
   const handleDownloadSummaryPDF = async (fileId, fileName) => {
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/v2/files/summary/${fileId}/pdf`,
+        `https://meeting-summary-genrator.onrender.com/api/v2/files/summary/${fileId}/pdf`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -386,7 +386,7 @@ function Dashboard() {
     }
 
     try {
-      const response = await axios.delete('http://localhost:8000/api/v2/users/delete-account', {
+      const response = await axios.delete('https://meeting-summary-genrator.onrender.com/api/v2/users/delete-account', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
