@@ -89,7 +89,7 @@ const Plans = () => {
       const { orderId, amount, currency, planType: responsePlanType } = response.data.data;
 
       const options = {
-        key: 'rzp_test_oifQCL4ShUZK2e',
+        key: 'rzp_test_wuAMXNeTg3LmFE',
         amount: amount * 100,
         currency: currency,
         name: 'Meet Beater AI',
